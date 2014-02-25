@@ -1,6 +1,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <malloc.h>
 
 #include <comp421/hardware.h>
 #include <comp421/loadinfo.h>
@@ -120,7 +121,7 @@ LoadProgram(char *name, char **args)
      *  Make sure we will leave at least one page between heap and stack
      */
     if (MEM_INVALID_PAGES + text_npg + data_bss_npg + stack_npg
-	1 + KERNEL_STACK_PAGES >= PAGE_TABLE_LEN) {
+	+ 1 + KERNEL_STACK_PAGES >= PAGE_TABLE_LEN) {
 	TracePrintf(0, "LoadProgram: program '%s' size too large for VM\n",
 	    name);
 	free(argbuf);
@@ -132,7 +133,7 @@ LoadProgram(char *name, char **args)
      *  And make sure there will be enough physical memory to
      *  load the new program.
      */
-    if (false) {
+    if (0) {
 	TracePrintf(0,
 	    "LoadProgram: program '%s' size too large for physical memory\n",
 	    name);

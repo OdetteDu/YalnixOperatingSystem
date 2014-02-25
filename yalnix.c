@@ -1,5 +1,15 @@
-#include <yalnix.c>
-#include <hardware.c>
+#include <yalnix.h>
+#include <hardware.h>
+
+extern int SetKernelBrk(void *)
+{
+
+}
+
+extern void KernelStart(ExceptionStackFrame *, unsigned int, void *, char **)
+{
+
+}
 
 extern int Fork(void)
 {
