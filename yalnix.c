@@ -56,59 +56,6 @@ extern int TtyWrite(int, void *, int)
 
 }
 
-extern int Register(unsigned int)
-{
 
-}
-
-extern int Send(void *, int)
-{
-
-}
-
-extern int Receive(void *)
-{
-
-}
-
-extern int ReceiveSpecific(void *, int)
-{
-
-}
-
-extern int Reply(void *, int)
-{
-
-}
-
-extern int Forward(void *, int, int)
-{
-
-}
-
-extern int CopyFrom(int, void *, void *, int)
-{
-
-}
-
-extern int CopyTo(int, void *, void *, int)
-{
-
-}
-
-extern int ReadSector(int, void *)
-{
-
-}
-
-extern int WriteSector(int, void *)
-{
-
-}
-
-extern int DiskStats(struct diskstats *)
-{
-
-}
 
 
