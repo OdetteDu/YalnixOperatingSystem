@@ -45,7 +45,13 @@ extern int SetKernelBrk(void *addr)
 
 extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void *orig_brk, char **cmd_args)
 {
-
+	interruptTable[TRAP_KERNEL] = trapKernel;
+	interruptTable[TRAP_CLOCK] = trapClock;
+	interruptTable[TRAP_ILLEGAL] = trapIllegal;
+	interruptTable[TRAP_MEMORY] = trapMemory;
+	interruptTable[TRAP_MATH] = trapMath;
+	interruptTable[TRAP_TTY_RECEIVE] = trapTTYReceive;
+	interruptTable[TRAP_TTY_TRANSMIT] = trapTTYTransmit;
 }
 
 extern int Fork(void)
