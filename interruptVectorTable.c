@@ -1,6 +1,8 @@
 #include <comp421/hardware.h>
 #include <comp421/yalnix.h>
 
+void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
+
 void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 {
 	  
