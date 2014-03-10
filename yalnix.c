@@ -52,6 +52,9 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	interruptTable[TRAP_MATH] = trapMath;
 	interruptTable[TRAP_TTY_RECEIVE] = trapTTYReceive;
 	interruptTable[TRAP_TTY_TRANSMIT] = trapTTYTransmit;
+	RCS421RegVal interruptTableAddress = (RCS421RegVal)interruptTable;
+	WriteRegister(REG_VECTOR_BASE, interruptTableAddress);
+
 }
 
 extern int Fork(void)
