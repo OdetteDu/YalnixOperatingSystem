@@ -3,6 +3,24 @@
 
 void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
 
+struct PhysicalPageNode
+{
+	  int pageNumber;
+	  struct PhysicalPageNode *next;
+};
+
+struct PhysicalPageNode *head;
+
+void allocatePhysicalPage()
+{
+	  
+}
+
+void freePhysicalPage()
+{
+	  
+}
+
 void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 {
     
@@ -45,6 +63,7 @@ extern int SetKernelBrk(void *addr)
 
 extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void *orig_brk, char **cmd_args)
 {
+	//initialize the interrupt vector Table
 	interruptTable[TRAP_KERNEL] = trapKernel;
 	interruptTable[TRAP_CLOCK] = trapClock;
 	interruptTable[TRAP_ILLEGAL] = trapIllegal;
@@ -54,7 +73,14 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	interruptTable[TRAP_TTY_TRANSMIT] = trapTTYTransmit;
 	RCS421RegVal interruptTableAddress = (RCS421RegVal)interruptTable;
 	WriteRegister(REG_VECTOR_BASE, interruptTableAddress);
-
+	
+	//initialize the page Table
+	int numOfPagesAvailable = pmem_size/PAGESIZE;
+	int i;
+	for ( i=0; i<numOfPagesAvailable; i++)
+	{
+		  
+	}
 }
 
 extern int Fork(void)
