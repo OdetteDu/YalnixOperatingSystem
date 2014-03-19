@@ -108,14 +108,33 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	TracePrintf(1024, "orig_brk: %d, orig_brk >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n",orig_brk, (long)orig_brk >> PAGESHIFT, UP_TO_PAGE(orig_brk), UP_TO_PAGE(orig_brk) >> PAGESHIFT, DOWN_TO_PAGE(orig_brk), DOWN_TO_PAGE(orig_brk) >> PAGESHIFT);
 
 	//assign kernel to page Table
-	
+	int limit = DOWN_TO_PAGE(etextAddr) >> PAGESHIFT;
+	for(index = VMEM_1_BASE >> PAGESHIFT; index <= limit; index++)
+	{
+		struct pte PTE;
+		PTE.valid = 1;
+		PTE.pfn = index;
+		PTE.uprot = PROT_NONE;
+		PTE.kprot = PROT_READ | PROT_EXEC;
+		KernelPageTable[index] = PTE;
+	}
+
+	limit = DOWN_TO_PAGE(orig_brk) >> PAGESHIFT;
+	for(index = UP_TO_PAGE(etextAddr) >> PAGESHIFT; index <= limit; index++)
+	{
+		struct pte PTE;
+		PTE.valid = 1; 
+		PTE.pfn = index;
+		PTE.uprot = PROT_NONE;
+		PTE.kprot = PROT_READ | PROT_WRITE;
+		KernelPageTable[index] = PTE;
+	}
 
 	int physicalPages[numOfPagesAvailable];
 	int i;
 	for ( i=0; i<numOfPagesAvailable; i++)
 	{
 		physicalPages[i] = 0;
-		TracePrintf(2048, "%d\n", physicalPages[i]);
 	}
 
 }
