@@ -9,8 +9,8 @@ struct PhysicalPageNode
 	  struct PhysicalPageNode *next;
 };
 
-struct PhysicalPageNode *head;
-struct PhysicalPageNode *current;
+struct PhysicalPageNode *physicalPageNodeHead;
+struct PhysicalPageNode *physicalPageNodeCurrent;
 
 struct pte KernelPageTable[PAGE_TABLE_LEN];
 struct pte UserPageTable[PAGE_TABLE_LEN];
@@ -85,9 +85,12 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	WriteRegister(REG_VECTOR_BASE, interruptTableAddress);
     
     //initialize the physical pages array
+	int numOfPagesAvailable = pmem_size/PAGESIZE;
+	TracePrintf(1024, "Total number of physical pages: %d\n", numOfPagesAvailable);
+
     int physicalPages[numOfPagesAvailable];
 	int index;
-	for ( index=0; i<numOfPagesAvailable; index++)
+	for ( index=0; index<numOfPagesAvailable; index++)
 	{
 		physicalPages[index] = 0;
 	}
@@ -104,8 +107,6 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	}
 
 	//calculated the existing use of memory
-	int numOfPagesAvailable = pmem_size/PAGESIZE;
-	TracePrintf(1024, "Total number of physical pages: %d\n", numOfPagesAvailable);
 
 	TracePrintf(1024, "PMEM_BASE: %d, VMEM_BASE: %d, VMEM_0_BASE: %d (%d), VMEM_0_LIMIT: %d (%d), VMEM_1_BASE: %d (%d), VMEM_1_LIMIT: %d (%d)\n", PMEM_BASE, VMEM_BASE, VMEM_0_BASE, VMEM_0_BASE >> PAGESHIFT, VMEM_0_LIMIT, VMEM_0_LIMIT >> PAGESHIFT, VMEM_1_BASE, VMEM_1_BASE >> PAGESHIFT, VMEM_1_LIMIT, VMEM_1_LIMIT >> PAGESHIFT);
 
@@ -140,7 +141,42 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		KernelPageTable[index] = PTE;
         physicalPages[index] = 1;
 	}
+	
+	TracePrintf(4096, "Debugger Break Point: 145\n");
+	//use a linked list to store the available physica pages
+	physicalPageNodeHead = 0;
+	physicalPageNodeCurrent = 0;
+	 
+	TracePrintf(4096, "Debugger Break Point: 150\n");
+	for(index = 1; index < sizeof(physicalPages); index++)
+	{
+		if(physicalPages[index] == 0)
+		{
+			TracePrintf(4096, "Debugger Break Point: 155\n");
+			//create a linked node
+			struct PhysicalPageNode physicalPageNode;
+			physicalPageNode.pageNumber = index;
+			physicalPageNode.next = 0;
 
+			TracePrintf(4096, "Debugger Break Point: 161\n");
+			if(physicalPageNodeHead == 0)
+			{
+				TracePrintf(4096, "Debugger Break Point: 164\n");
+				physicalPageNodeHead = &physicalPageNode;
+				physicalPageNodeCurrent = &physicalPageNode;
+				TracePrintf(4096, "Debugger Break Point: 167\n");
+			}
+			else
+			{
+				physicalPageNodeCurrent -> next = &physicalPageNode;
+				physicalPageNodeCurrent = &physicalPageNode;
+			}
+
+		}
+	}
+
+	//Write the page table address to the register and enable virtual memory
+	
 }
 
 extern int Fork(void)
