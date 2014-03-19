@@ -83,9 +83,16 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	interruptTable[TRAP_TTY_TRANSMIT] = trapTTYTransmit;
 	RCS421RegVal interruptTableAddress = (RCS421RegVal)interruptTable;
 	WriteRegister(REG_VECTOR_BASE, interruptTableAddress);
+    
+    //initialize the physical pages array
+    int physicalPages[numOfPagesAvailable];
+	int index;
+	for ( index=0; i<numOfPagesAvailable; index++)
+	{
+		physicalPages[index] = 0;
+	}
 	
 	//initialize the page Table
-	int index;
 	for( index = 0; index < sizeof(KernelPageTable); index++ )
 	{
 		  struct pte PTE;
@@ -108,7 +115,9 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	TracePrintf(1024, "orig_brk: %d, orig_brk >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n",orig_brk, (long)orig_brk >> PAGESHIFT, UP_TO_PAGE(orig_brk), UP_TO_PAGE(orig_brk) >> PAGESHIFT, DOWN_TO_PAGE(orig_brk), DOWN_TO_PAGE(orig_brk) >> PAGESHIFT);
 
 	//assign kernel to page Table
-	int limit = DOWN_TO_PAGE(etextAddr) >> PAGESHIFT;
+	int limit;
+    
+    limit = DOWN_TO_PAGE(etextAddr) >> PAGESHIFT;
 	for(index = VMEM_1_BASE >> PAGESHIFT; index <= limit; index++)
 	{
 		struct pte PTE;
@@ -117,6 +126,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_EXEC;
 		KernelPageTable[index] = PTE;
+        physicalPages[index] = 1;
 	}
 
 	limit = DOWN_TO_PAGE(orig_brk) >> PAGESHIFT;
@@ -128,13 +138,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		KernelPageTable[index] = PTE;
-	}
-
-	int physicalPages[numOfPagesAvailable];
-	int i;
-	for ( i=0; i<numOfPagesAvailable; i++)
-	{
-		physicalPages[i] = 0;
+        physicalPages[index] = 1;
 	}
 
 }
