@@ -10,6 +10,7 @@ struct PhysicalPageNode
 };
 
 struct PhysicalPageNode *head;
+struct PhysicalPageNode *current;
 
 void allocatePhysicalPage()
 {
@@ -76,6 +77,17 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	
 	//initialize the page Table
 	int numOfPagesAvailable = pmem_size/PAGESIZE;
+	TracePrintf(1024, "Total number of physical pages: %d\n", numOfPagesAvailable);
+
+	TracePrintf(1024, "PMEM_BASE: %d, VMEM_BASE: %d, VMEM_1_BASE: %d, &_etext: %d, orig_brk: %d\n", PMEM_BASE, VMEM_BASE, VMEM_1_BASE, &_etext, orig_brk);
+
+	TracePrintf(1024, "VMEM_1_BASE >> PAGESHIFT: %d\n", VMEM_1_BASE >> PAGESHIFT);
+
+	long etextAddr = (long)&_etext;
+	TracePrintf(1024, "&_etext >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n", etextAddr >> PAGESHIFT, UP_TO_PAGE(etextAddr), UP_TO_PAGE(etextAddr) >> PAGESHIFT, DOWN_TO_PAGE(etextAddr), DOWN_TO_PAGE(etextAddr) >> PAGESHIFT);
+
+	TracePrintf(1024, "orig_brk >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n", (long)orig_brk >> PAGESHIFT, UP_TO_PAGE(orig_brk), UP_TO_PAGE(orig_brk) >> PAGESHIFT, DOWN_TO_PAGE(orig_brk), DOWN_TO_PAGE(orig_brk) >> PAGESHIFT);
+
 	int i;
 	for ( i=0; i<numOfPagesAvailable; i++)
 	{
