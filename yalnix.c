@@ -12,7 +12,8 @@ struct PhysicalPageNode
 struct PhysicalPageNode *head;
 struct PhysicalPageNode *current;
 
-struct pte *PageTable;
+struct pte KernelPageTable[PAGE_TABLE_LEN];
+struct pte UserPageTable[PAGE_TABLE_LEN];
 
 void allocatePhysicalPage()
 {
@@ -84,6 +85,18 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	WriteRegister(REG_VECTOR_BASE, interruptTableAddress);
 	
 	//initialize the page Table
+	int index;
+	for( index = 0; index < sizeof(KernelPageTable); index++ )
+	{
+		  struct pte PTE;
+		  PTE.valid = 0;
+		  PTE.pfn = 0;
+		  PTE.uprot = PROT_NONE;
+		  PTE.kprot = PROT_NONE;
+		  KernelPageTable[index] = PTE;
+	}
+
+	//calculated the existing use of memory
 	int numOfPagesAvailable = pmem_size/PAGESIZE;
 	TracePrintf(1024, "Total number of physical pages: %d\n", numOfPagesAvailable);
 
@@ -93,6 +106,9 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	TracePrintf(1024, "&_etext: %d, &_etext >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n", &_etext, etextAddr >> PAGESHIFT, UP_TO_PAGE(etextAddr), UP_TO_PAGE(etextAddr) >> PAGESHIFT, DOWN_TO_PAGE(etextAddr), DOWN_TO_PAGE(etextAddr) >> PAGESHIFT);
 
 	TracePrintf(1024, "orig_brk: %d, orig_brk >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n",orig_brk, (long)orig_brk >> PAGESHIFT, UP_TO_PAGE(orig_brk), UP_TO_PAGE(orig_brk) >> PAGESHIFT, DOWN_TO_PAGE(orig_brk), DOWN_TO_PAGE(orig_brk) >> PAGESHIFT);
+
+	//assign kernel to page Table
+	
 
 	int physicalPages[numOfPagesAvailable];
 	int i;
@@ -114,11 +130,6 @@ extern int Exec(char *filename, char **argvec)
 {
 	TracePrintf(512, "Exec: filename(%s), argvec(%s)\n", filename, argvec);
 	return 0;
-}
-
-extern void Exit(int status)
-{
-	TracePrintf(512, "Exit: status(%d)\n", status);
 }
 
 extern int Wait(int *status_ptr)
