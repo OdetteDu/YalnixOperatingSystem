@@ -12,6 +12,8 @@ struct PhysicalPageNode
 struct PhysicalPageNode *head;
 struct PhysicalPageNode *current;
 
+struct pte *PageTable;
+
 void allocatePhysicalPage()
 {
 	  
@@ -24,42 +26,46 @@ void freePhysicalPage()
 
 void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 {
+	TracePrintf(512, "trapKernel: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
     
 }
 
 void trapClock(ExceptionStackFrame *exceptionStackFrame)
 {
+	TracePrintf(512, "trapClock: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
     
 }
 
 void trapIllegal(ExceptionStackFrame *exceptionStackFrame)
 {
+	TracePrintf(512, "trapIllegal: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
     
 }
 
 void trapMemory(ExceptionStackFrame *exceptionStackFrame)
 {
+	TracePrintf(512, "trapMemory: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
     
 }
 
 void trapMath(ExceptionStackFrame *exceptionStackFrame)
 {
     
+	TracePrintf(512, "trapMath: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
 }
 
 void trapTTYReceive(ExceptionStackFrame *exceptionStackFrame)
 {
-    
+	TracePrintf(512, "trapTTYReceive: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
 }
 
 void trapTTYTransmit(ExceptionStackFrame *exceptionStackFrame)
 {
-    
+	TracePrintf(512, "trapTTYTransmit: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
 }
 
 extern int SetKernelBrk(void *addr)
 {
-	
 	TracePrintf(512, "Set Kernel Brk Called: addr >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n", (long)addr >> PAGESHIFT, UP_TO_PAGE(addr), UP_TO_PAGE(addr) >> PAGESHIFT, DOWN_TO_PAGE(addr), DOWN_TO_PAGE(addr) >> PAGESHIFT);
 	return 0;
 }
@@ -88,11 +94,14 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
 	TracePrintf(1024, "orig_brk: %d, orig_brk >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n",orig_brk, (long)orig_brk >> PAGESHIFT, UP_TO_PAGE(orig_brk), UP_TO_PAGE(orig_brk) >> PAGESHIFT, DOWN_TO_PAGE(orig_brk), DOWN_TO_PAGE(orig_brk) >> PAGESHIFT);
 
+	int physicalPages[numOfPagesAvailable];
 	int i;
 	for ( i=0; i<numOfPagesAvailable; i++)
 	{
-		  
+		physicalPages[i] = 0;
+		TracePrintf(2048, "%d\n", physicalPages[i]);
 	}
+
 }
 
 extern int Fork(void)
