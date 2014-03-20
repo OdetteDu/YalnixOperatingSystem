@@ -96,7 +96,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	}
 	
 	//initialize the page Table
-	for( index = 0; index < sizeof(KernelPageTable); index++ )
+	for( index = 0; index < PAGE_TABLE_LEN; index++ )
 	{
 		  struct pte PTE;
 		  PTE.valid = 0;
@@ -105,6 +105,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		  PTE.kprot = PROT_NONE;
 		  KernelPageTable[index] = PTE;
 	}
+	TracePrintf(1024, "PAGE_TABLE_LEN: %d, KernelPageTable Size: %d\n", PAGE_TABLE_LEN, sizeof(KernelPageTable));
 
 	//calculated the existing use of memory
 
@@ -118,12 +119,12 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	//assign kernel to page Table
 	int limit;
     
-    limit = DOWN_TO_PAGE(etextAddr) >> PAGESHIFT;
-	for(index = VMEM_1_BASE >> PAGESHIFT; index <= limit; index++)
+    limit = (DOWN_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN;
+	for(index = (VMEM_1_BASE >> PAGESHIFT) - PAGE_TABLE_LEN; index <= limit; index++)
 	{
 		struct pte PTE;
 		PTE.valid = 1;
-		PTE.pfn = index;
+		PTE.pfn = index + PAGE_TABLE_LEN;
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_EXEC;
 		KernelPageTable[index] = PTE;
@@ -131,12 +132,12 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		TracePrintf(2048, "Allocate page for text: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 
-	limit = DOWN_TO_PAGE(orig_brk) >> PAGESHIFT;
-	for(index = UP_TO_PAGE(etextAddr) >> PAGESHIFT; index <= limit; index++)
+	limit = (DOWN_TO_PAGE(orig_brk) >> PAGESHIFT) - PAGE_TABLE_LEN;
+	for(index = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN; index <= limit; index++)
 	{
 		struct pte PTE;
 		PTE.valid = 1; 
-		PTE.pfn = index;
+		PTE.pfn = index + PAGE_TABLE_LEN;
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		KernelPageTable[index] = PTE;
@@ -177,7 +178,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		}
 	}
 
-	for(index = 0; index < sizeof(KernelPageTable); index++)
+	for(index = 0; index < PAGE_TABLE_LEN; index++)
 	{
 		  TracePrintf(2048, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
 	}
