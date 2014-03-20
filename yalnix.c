@@ -73,7 +73,13 @@ extern int SetKernelBrk(void *addr)
 
 extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void *orig_brk, char **cmd_args)
 {
+	int index;
 	//initialize the interrupt vector Table
+	for (index = 0; index < sizeof(interruptTable); index++)
+	{
+		interruptTable[index] = 0;
+	}
+	
 	interruptTable[TRAP_KERNEL] = trapKernel;
 	interruptTable[TRAP_CLOCK] = trapClock;
 	interruptTable[TRAP_ILLEGAL] = trapIllegal;
@@ -89,7 +95,6 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	TracePrintf(1024, "Total number of physical pages: %d\n", numOfPagesAvailable);
 
     int physicalPages[numOfPagesAvailable];
-	int index;
 	for ( index=0; index<numOfPagesAvailable; index++)
 	{
 		physicalPages[index] = 0;
@@ -107,6 +112,16 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	}
 	TracePrintf(1024, "PAGE_TABLE_LEN: %d, KernelPageTable Size: %d\n", PAGE_TABLE_LEN, sizeof(KernelPageTable));
 
+	for( index = 0; index < PAGE_TABLE_LEN; index++ )
+	{
+		  struct pte PTE;
+		  PTE.valid = 0;
+		  PTE.pfn = 0;
+		  PTE.uprot = PROT_NONE;
+		  PTE.kprot = PROT_NONE;
+		  UserPageTable[index] = PTE;
+	}
+
 	//calculated the existing use of memory
 
 	TracePrintf(1024, "PMEM_BASE: %d, VMEM_BASE: %d, VMEM_0_BASE: %d (%d), VMEM_0_LIMIT: %d (%d), VMEM_1_BASE: %d (%d), VMEM_1_LIMIT: %d (%d)\n", PMEM_BASE, VMEM_BASE, VMEM_0_BASE, VMEM_0_BASE >> PAGESHIFT, VMEM_0_LIMIT, VMEM_0_LIMIT >> PAGESHIFT, VMEM_1_BASE, VMEM_1_BASE >> PAGESHIFT, VMEM_1_LIMIT, VMEM_1_LIMIT >> PAGESHIFT);
@@ -116,11 +131,16 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
 	TracePrintf(1024, "orig_brk: %d, orig_brk >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n",orig_brk, (long)orig_brk >> PAGESHIFT, UP_TO_PAGE(orig_brk), UP_TO_PAGE(orig_brk) >> PAGESHIFT, DOWN_TO_PAGE(orig_brk), DOWN_TO_PAGE(orig_brk) >> PAGESHIFT);
 
+	TracePrintf(1024, "KERNEL_STACK_BASE: %d (%d), KERNEL_STACK_LIMIT: %d (%d), KERNEL_STACK_PAGES: %d, KERNEL_STACK_SIZE: %d, USER_STACK_LIMIT: %d (%d)\n", KERNEL_STACK_BASE, KERNEL_STACK_BASE >> PAGESHIFT, KERNEL_STACK_LIMIT, KERNEL_STACK_LIMIT >> PAGESHIFT, KERNEL_STACK_PAGES, KERNEL_STACK_SIZE, USER_STACK_LIMIT, USER_STACK_LIMIT >> PAGESHIFT);
+
+	TracePrintf(2048, "KernelPageTable: %d %d %d\n", KernelPageTable, &KernelPageTable, *&KernelPageTable);
+	TracePrintf(2048, "UserPageTable: %d %d %d\n", UserPageTable, &UserPageTable, *&UserPageTable);
 	//assign kernel to page Table
 	int limit;
     
-    limit = (DOWN_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN;
-	for(index = (VMEM_1_BASE >> PAGESHIFT) - PAGE_TABLE_LEN; index <= limit; index++)
+	//assign kernel text
+    limit = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN;
+	for(index = (VMEM_1_BASE >> PAGESHIFT) - PAGE_TABLE_LEN; index < limit; index++)
 	{
 		struct pte PTE;
 		PTE.valid = 1;
@@ -128,12 +148,13 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_EXEC;
 		KernelPageTable[index] = PTE;
-        physicalPages[index] = 1;
+        physicalPages[index + PAGE_TABLE_LEN] = 1;
 		TracePrintf(2048, "Allocate page for text: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 
-	limit = (DOWN_TO_PAGE(orig_brk) >> PAGESHIFT) - PAGE_TABLE_LEN;
-	for(index = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN; index <= limit; index++)
+	//assign kernel data and bss
+	limit = (UP_TO_PAGE(orig_brk) >> PAGESHIFT) - PAGE_TABLE_LEN;
+	for(index = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN; index < limit; index++)
 	{
 		struct pte PTE;
 		PTE.valid = 1; 
@@ -141,9 +162,24 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		KernelPageTable[index] = PTE;
-        physicalPages[index] = 1;
+        physicalPages[index + PAGE_TABLE_LEN] = 1;
 		TracePrintf(2048, "Allocate page for data: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
+
+	//assign kernel stack
+	limit = UP_TO_PAGE(KERNEL_STACK_LIMIT) >> PAGESHIFT;
+	for(index = UP_TO_PAGE(KERNEL_STACK_BASE) >> PAGESHIFT; index < limit; index++)
+	{
+		struct pte PTE;
+		PTE.valid = 1;
+		PTE.pfn = index;
+		PTE.uprot = PROT_NONE;
+		PTE.kprot = PROT_READ | PROT_WRITE;
+		UserPageTable[index] = PTE;
+		physicalPages[index] = 1;
+		TracePrintf(2048, "Allocate page for stack: vpn(%d), pfn(%d)\n", index, PTE.pfn);
+	}
+	
 	
 	TracePrintf(4096, "Debugger Break Point: 145\n");
 	//use a linked list to store the available physica pages
@@ -178,17 +214,22 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		}
 	}
 
+	TracePrintf(2048, "Print Kernel Page Table\n");
 	for(index = 0; index < PAGE_TABLE_LEN; index++)
 	{
 		  TracePrintf(2048, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
 	}
 
+	TracePrintf(2048, "Print User Page Table\n");
+	for(index = 0; index < PAGE_TABLE_LEN; index++)
+	{
+		  TracePrintf(2048, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
+	}
 	//Write the page table address to the register and enable virtual memory
-	TracePrintf(2048, "KernelPageTable: %d %d %d\n", KernelPageTable, &KernelPageTable, *&KernelPageTable);
 	RCS421RegVal kernelPageTableAddress = (RCS421RegVal)KernelPageTable;
-	TracePrintf(4096, "Debugger Break Point: 181\n");
 	WriteRegister(REG_PTR1, kernelPageTableAddress);
-	TracePrintf(4096, "Debugger Break Point: 183\n");
+	RCS421RegVal userPageTableAddress = (RCS421RegVal)UserPageTable;
+	WriteRegister(REG_PTR0, userPageTableAddress);
 	WriteRegister(REG_VM_ENABLE, 1);
 }
 
