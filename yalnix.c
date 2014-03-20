@@ -128,6 +128,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.kprot = PROT_READ | PROT_EXEC;
 		KernelPageTable[index] = PTE;
         physicalPages[index] = 1;
+		TracePrintf(2048, "Allocate page for text: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 
 	limit = DOWN_TO_PAGE(orig_brk) >> PAGESHIFT;
@@ -140,6 +141,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		KernelPageTable[index] = PTE;
         physicalPages[index] = 1;
+		TracePrintf(2048, "Allocate page for data: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 	
 	TracePrintf(4096, "Debugger Break Point: 145\n");
@@ -175,8 +177,18 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		}
 	}
 
+	for(index = 0; index < sizeof(KernelPageTable); index++)
+	{
+		  TracePrintf(2048, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
+	}
+
 	//Write the page table address to the register and enable virtual memory
-	
+	TracePrintf(2048, "KernelPageTable: %d %d %d\n", KernelPageTable, &KernelPageTable, *&KernelPageTable);
+	RCS421RegVal kernelPageTableAddress = (RCS421RegVal)KernelPageTable;
+	TracePrintf(4096, "Debugger Break Point: 181\n");
+	WriteRegister(REG_PTR1, kernelPageTableAddress);
+	TracePrintf(4096, "Debugger Break Point: 183\n");
+	WriteRegister(REG_VM_ENABLE, 1);
 }
 
 extern int Fork(void)
