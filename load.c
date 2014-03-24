@@ -1,16 +1,10 @@
->>>> THIS FILE IS ONLY A TEMPLATE FOR YOUR LoadProgram FUNCTION
-
->>>> You MUST edit each place marked by ">>>>" below to replace
->>>> the ">>>>" description with code for your kernel to implement the
->>>> behavior described.  You might also want to save the original
->>>> annotations as comments.
-
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
 
 #include <comp421/hardware.h>
 #include <comp421/loadinfo.h>
+#include "yalnix.c"
 
 /*
  *  Load a program into the current process's address space.  The

@@ -9,6 +9,7 @@ struct PhysicalPageNode
 	  struct PhysicalPageNode *next;
 };
 
+int numPhysicalPagesLeft;
 struct PhysicalPageNode *physicalPageNodeHead;
 struct PhysicalPageNode *physicalPageNodeCurrent;
 
@@ -92,7 +93,8 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
     
     //initialize the physical pages array
 	int numOfPagesAvailable = pmem_size/PAGESIZE;
-	TracePrintf(1024, "Total number of physical pages: %d\n", numOfPagesAvailable);
+	numPhysicalPagesLeft = numOfPagesAvailable;
+	TracePrintf(1024, "Total number of physical pages: %d, Available pages: %d\n", numOfPagesAvailable, numPhysicalPagesLeft);
 
     int physicalPages[numOfPagesAvailable];
 	for ( index=0; index<numOfPagesAvailable; index++)
@@ -149,6 +151,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.kprot = PROT_READ | PROT_EXEC;
 		KernelPageTable[index] = PTE;
         physicalPages[index + PAGE_TABLE_LEN] = 1;
+		numPhysicalPagesLeft --;
 		TracePrintf(2048, "Allocate page for text: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 
@@ -163,6 +166,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		KernelPageTable[index] = PTE;
         physicalPages[index + PAGE_TABLE_LEN] = 1;
+		numPhysicalPagesLeft --;
 		TracePrintf(2048, "Allocate page for data: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 
@@ -177,6 +181,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		UserPageTable[index] = PTE;
 		physicalPages[index] = 1;
+		numPhysicalPagesLeft --;
 		TracePrintf(2048, "Allocate page for stack: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 	
@@ -187,6 +192,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	physicalPageNodeCurrent = 0;
 	 
 	TracePrintf(4096, "Debugger Break Point: 150\n");
+	TracePrintf(1024, "Number of Physical Pages Available: %d\n", numPhysicalPagesLeft);
 	for(index = 1; index < sizeof(physicalPages); index++)
 	{
 		if(physicalPages[index] == 0)
