@@ -231,6 +231,9 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	RCS421RegVal userPageTableAddress = (RCS421RegVal)UserPageTable;
 	WriteRegister(REG_PTR0, userPageTableAddress);
 	WriteRegister(REG_VM_ENABLE, 1);
+
+	//Running the idle process
+	TracePrintf(512, "ExceptionStackFrame: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", frame->vector, frame->code, frame->addr, frame->psr, frame->pc, frame->sp, frame->regs);
 }
 
 extern int Fork(void)
