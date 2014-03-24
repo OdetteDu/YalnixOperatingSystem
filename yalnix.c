@@ -16,14 +16,20 @@ struct PhysicalPageNode *physicalPageNodeCurrent;
 struct pte KernelPageTable[PAGE_TABLE_LEN];
 struct pte UserPageTable[PAGE_TABLE_LEN];
 
-void allocatePhysicalPage()
+int allocatePhysicalPage()
 {
-	  
+	struct PhysicalPageNode physicalPageNode = *physicalPageNodeHead;
+	physicalPageNodeHead = physicalPageNode.next;
+	return physicalPageNode.pageNumber;
 }
 
-void freePhysicalPage()
+void freePhysicalPage(int pfn)
 {
-	  
+	struct PhysicalPageNode physicalPageNode;
+	physicalPageNode.pageNumber = pfn;
+	physicalPageNode.next = 0;
+	physicalPageNodeCurrent -> next = &physicalPageNode;
+	physicalPageNodeCurrent = &physicalPageNode;
 }
 
 void trapKernel(ExceptionStackFrame *exceptionStackFrame)
