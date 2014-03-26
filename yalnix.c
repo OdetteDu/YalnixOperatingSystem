@@ -602,7 +602,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> uprot = PROT_READ | PROT_WRITE;
 		PTE -> pfn = allocatePhysicalPage();
 	}
-	TracePrintf(1536, "Initialize stake pages\n");
+	TracePrintf(1536, "Initialize stack pages\n");
 
     /*
      *  All pages for the new address space are now in place.  Flush
