@@ -6,6 +6,7 @@
 #include <comp421/yalnix.h>
 #include <comp421/hardware.h>
 
+extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
 void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
 
 struct PhysicalPageNode
@@ -251,6 +252,8 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
 	//Running the idle process
 	TracePrintf(512, "ExceptionStackFrame: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", frame->vector, frame->code, frame->addr, frame->psr, frame->pc, frame->sp, frame->regs);
+
+	LoadProgram("idle", 0, frame);
 }
 
 extern int Fork(void)
