@@ -440,6 +440,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
     >>>> the new program being loaded.
 	*/
 	int totalPageNeeded = text_npg + data_bss_npg + stack_npg;
+	TracePrintf(1024, "Total Page Needed: %d\n", totalPageNeeded);
 
     if (numPhysicalPagesLeft < totalPageNeeded) {
 	TracePrintf(0,
@@ -453,6 +454,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
     //>>>> Initialize sp for the current process to (char *)cpp.
     //>>>> The value of cpp was initialized above.
 	frame -> sp = (char *)cpp;
+	TracePrintf(1024, "Set frame -> sp\n");
 
     /*
      *  Free all the old physical memory belonging to this process,
@@ -478,6 +480,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		}
 		PTE -> valid = 0;
 	}
+	TracePrintf(1024, "Clear Region 0\n");
 
     /*
      *  Fill in the page table with the right number of text,
@@ -496,6 +499,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> valid = 0;
 		PTE -> pfn = 0;
 	}
+	TracePrintf(1024, "Set first MEM_INVALID_PAGES invalid.\n");
 
     /* First, the text pages */
 	/*
@@ -514,6 +518,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> uprot = PROT_READ | PROT_EXEC;
 		PTE -> pfn = allocatePhysicalPage();
 	}
+	TracePrintf(1024, "Initialize text pages\n");
 
     /* Then the data and bss pages */
 	/*
@@ -533,6 +538,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> uprot = PROT_READ | PROT_WRITE;
 		PTE -> pfn = allocatePhysicalPage();
 	}
+	TracePrintf(1024, "Initialize data and bss pages\n");
 
     /* And finally the user stack pages */
 	/*
@@ -553,6 +559,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> uprot = PROT_READ | PROT_WRITE;
 		PTE -> pfn = allocatePhysicalPage();
 	}
+	TracePrintf(1024, "Initialize stake pages\n");
 
     /*
      *  All pages for the new address space are now in place.  Flush
@@ -577,6 +584,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 	*/
 	return (-2);
     }
+	TracePrintf(1024, "Read the text and data from the file into memory\n");
 
     close(fd);			/* we've read it all now */
 
@@ -593,7 +601,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		  struct pte *PTE = &UserPageTable[index];
 		  PTE -> kprot = PROT_READ | PROT_EXEC;
 	}
-
+	TracePrintf(1024, "Make the Kernel PROT_READ | PROT_EXEC\n");
 
     WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
 
@@ -608,6 +616,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
      */
     //>>>> Initialize pc for the current process to (void *)li.entry
 	frame -> pc = (void *)li.entry;
+	TracePrintf(1024, "Set frame -> pc\n");
 
     /*
      *  Now, finally, build the argument list on the new stack.
@@ -642,6 +651,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 	{
 		frame -> regs[index] = 0;
 	}
+	TracePrintf(1024, "Initialize regs[]\n");
 
     return (0);
 }
