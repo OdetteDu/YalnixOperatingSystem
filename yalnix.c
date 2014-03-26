@@ -216,7 +216,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
 	//assign kernel data and bss
 	limit = (UP_TO_PAGE(new_brk) >> PAGESHIFT) - PAGE_TABLE_LEN;
-	for(index = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN; index < limit; index++)
+	for(index = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN; index <= limit; index++)
 	{
 		struct pte PTE;
 		PTE.valid = 1; 
