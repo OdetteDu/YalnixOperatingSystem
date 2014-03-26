@@ -510,7 +510,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
     >>>>     uprot = PROT_READ | PROT_EXEC
     >>>>     pfn   = a new page of physical memory
 	*/
-	for( index = MEM_INVALID_SIZE; index < MEM_INVALID_SIZE + text_npg; index ++)
+	for( index = MEM_INVALID_PAGES; index < MEM_INVALID_PAGES + text_npg; index ++)
 	{
 		struct pte *PTE = &UserPageTable[index];
 		PTE -> valid = 1;
