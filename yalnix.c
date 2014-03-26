@@ -17,10 +17,11 @@ struct PhysicalPageNode
 
 int numPhysicalPagesLeft;
 struct PhysicalPageNode *physicalPageNodeHead;
-//struct PhysicalPageNode *physicalPageNodeCurrent;
 
 struct pte KernelPageTable[PAGE_TABLE_LEN];
 struct pte UserPageTable[PAGE_TABLE_LEN];
+
+void *new_brk;
 
 int allocatePhysicalPage()
 {
@@ -106,6 +107,19 @@ void trapTTYTransmit(ExceptionStackFrame *exceptionStackFrame)
 extern int SetKernelBrk(void *addr)
 {
 	TracePrintf(512, "Set Kernel Brk Called: addr >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n", (long)addr >> PAGESHIFT, UP_TO_PAGE(addr), UP_TO_PAGE(addr) >> PAGESHIFT, DOWN_TO_PAGE(addr), DOWN_TO_PAGE(addr) >> PAGESHIFT);
+	if(new_brk == NULL)
+	{
+		  new_brk = addr;
+		  TracePrintf(1280, "Set new_brk from NULL to %d\n", new_brk);
+	}
+	else
+	{
+		  if(addr > new_brk)
+		  {
+				TracePrintf(1280, "Set new_brk from %d to %d\n", new_brk, addr);
+				new_brk = addr;
+		  }
+	}
 	return 0;
 }
 
@@ -133,10 +147,14 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	numPhysicalPagesLeft = numOfPagesAvailable;
 	TracePrintf(1024, "Total number of physical pages: %d, Available pages: %d\n", numOfPagesAvailable, numPhysicalPagesLeft);
 
-    int physicalPages[numOfPagesAvailable];
+    struct PhysicalPageNode *physicalPages[numOfPagesAvailable];
 	for ( index=0; index<numOfPagesAvailable; index++)
 	{
-		physicalPages[index] = 0;
+		struct PhysicalPageNode *newNode;
+		newNode = (struct PhysicalPageNode *) malloc(sizeof(struct PhysicalPageNode));
+		newNode -> pageNumber = index;
+		newNode -> next = NULL;
+		physicalPages[index] = newNode;
 	}
 	
 	//initialize the page Table
@@ -187,13 +205,15 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_EXEC;
 		KernelPageTable[index] = PTE;
-        physicalPages[index + PAGE_TABLE_LEN] = 1;
+		struct PhysicalPageNode *node = physicalPages[index + PAGE_TABLE_LEN];
+		free(node);
+        physicalPages[index + PAGE_TABLE_LEN] = NULL;
 		numPhysicalPagesLeft --;
 		TracePrintf(2048, "Allocate page for text: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 
 	//assign kernel data and bss
-	limit = (UP_TO_PAGE(orig_brk) >> PAGESHIFT) - PAGE_TABLE_LEN;
+	limit = (UP_TO_PAGE(new_brk) >> PAGESHIFT) - PAGE_TABLE_LEN;
 	for(index = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN; index < limit; index++)
 	{
 		struct pte PTE;
@@ -202,7 +222,9 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		KernelPageTable[index] = PTE;
-        physicalPages[index + PAGE_TABLE_LEN] = 1;
+		struct PhysicalPageNode *node = physicalPages[index + PAGE_TABLE_LEN];
+		free(node);
+        physicalPages[index + PAGE_TABLE_LEN] = NULL;
 		numPhysicalPagesLeft --;
 		TracePrintf(2048, "Allocate page for data: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
@@ -223,7 +245,9 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		UserPageTable[index] = PTE;
-		physicalPages[index] = 1;
+		struct PhysicalPageNode *node = physicalPages[index + PAGE_TABLE_LEN];
+		free(node);
+        physicalPages[index] = NULL;
 		numPhysicalPagesLeft --;
 		TracePrintf(2048, "Allocate page for stack: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
@@ -242,12 +266,18 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	numPhysicalPagesLeft = 0;
 	for(index = 0; index < numOfPagesAvailable; index++)
 	{
-		if(physicalPages[index] == 0)
+		if(physicalPages[index] != NULL)
 		{
-			//create a linked node
-			freePhysicalPage(index);
-			//TracePrintf(1796, "Number of free physical pages available after insert %d: %d\n", index, numPhysicalPagesLeft);
-			//printPhysicalPageLinkedList();
+			if(physicalPageNodeHead == NULL)
+			{
+				  physicalPageNodeHead = physicalPages[index];
+			}
+			else
+			{
+				 physicalPages[index] -> next = physicalPageNodeHead;
+				 physicalPageNodeHead = physicalPages[index];
+			}
+			numPhysicalPagesLeft++;
 		}
 	}
 
