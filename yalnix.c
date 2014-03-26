@@ -263,7 +263,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		UserPageTable[index] = PTE;
-		struct PhysicalPageNode *node = physicalPages[index + PAGE_TABLE_LEN];
+		struct PhysicalPageNode *node = physicalPages[index];
 		free(node);
         physicalPages[index] = NULL;
 		numPhysicalPagesLeft --;
