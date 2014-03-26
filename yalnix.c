@@ -55,11 +55,11 @@ void freePhysicalPage(int pfn)
 
 void printPhysicalPageLinkedList()
 {
-	TracePrintf(1792, "Free Physical Pages: \n");
+	TracePrintf(3072, "Free Physical Pages: \n");
 	struct PhysicalPageNode *current = physicalPageNodeHead;
 	while(current != NULL)
 	{
-		TracePrintf(1792, "%d\n", current -> pageNumber);
+		TracePrintf(3072, "%d\n", current -> pageNumber);
 		current = current -> next;
 	}
 }
@@ -67,6 +67,7 @@ void printPhysicalPageLinkedList()
 void printKernelPageTable(int level)
 {
 	TracePrintf(level, "Print Kernel Page Table\n");
+	int index;
 	for(index = 0; index < PAGE_TABLE_LEN; index++)
 	{
 		  TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
@@ -75,10 +76,11 @@ void printKernelPageTable(int level)
 
 void printUserPageTable(int level)
 {
-	TracePrintf(2048, "Print User Page Table\n");
+	TracePrintf(level, "Print User Page Table\n");
+	int index;
 	for(index = 0; index < PAGE_TABLE_LEN; index++)
 	{
-		  TracePrintf(2048, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
+		  TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
 	}
 }
 
@@ -613,6 +615,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> pfn = allocatePhysicalPage();
 	}
 	TracePrintf(1536, "Initialize stack pages\n");
+	printUserPageTable(1920);
 
     /*
      *  All pages for the new address space are now in place.  Flush
