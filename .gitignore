@@ -1,2 +1,9 @@
 *.o
 yalnix
+idle
+init
+TTYLOG.*
+TTYLOG
+DISK
+TRACE
+output.txt
