@@ -26,10 +26,10 @@ int allocatePhysicalPage()
 {
 	struct PhysicalPageNode *allocatedPhysicalPageNode = physicalPageNodeHead;
 	physicalPageNodeHead = allocatedPhysicalPageNode -> next;
-	int pageNumber = allocatedPhysicalPageNode.pageNumber;
+	int number = allocatedPhysicalPageNode -> pageNumber;
 	free(allocatedPhysicalPageNode);
 	numPhysicalPagesLeft--;
-	return pageNumber;
+	return number;
 }
 
 void freePhysicalPage(int pfn)
@@ -54,11 +54,11 @@ void freePhysicalPage(int pfn)
 
 void printPhysicalPageLinkedList()
 {
-	TracePrint(1792, "Free Physical Pages: \n");
+	TracePrintf(1792, "Free Physical Pages: \n");
 	struct PhysicalPageNode *current = physicalPageNodeHead;
 	while(current != NULL)
 	{
-		TracePrint(1792, "%d\n", current -> pageNumber);
+		TracePrintf(1792, "%d\n", current -> pageNumber);
 		current = current -> next;
 	}
 }
@@ -235,17 +235,19 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	}
 	
 	//use a linked list to store the available physica pages
-	physicalPageNodeHead = 0;
-	physicalPageNodeCurrent = 0;
+	//physicalPageNodeHead = 0;
+	//physicalPageNodeCurrent = 0;
 	 
 	TracePrintf(1024, "Number of physical pages available after allocate to Kernel: %d\n", numPhysicalPagesLeft);
-	numPhysicalPagesLeft = numOfPagesAvailable;
-	for(index = 1; index < sizeof(physicalPages); index++)
+	numPhysicalPagesLeft = 0;
+	for(index = 0; index < numOfPagesAvailable; index++)
 	{
 		if(physicalPages[index] == 0)
 		{
 			//create a linked node
 			freePhysicalPage(index);
+			//TracePrintf(1796, "Number of free physical pages available after insert %d: %d\n", index, numPhysicalPagesLeft);
+			//printPhysicalPageLinkedList();
 		}
 	}
 
