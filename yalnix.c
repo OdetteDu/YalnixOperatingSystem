@@ -64,6 +64,24 @@ void printPhysicalPageLinkedList()
 	}
 }
 
+void printKernelPageTable(int level)
+{
+	TracePrintf(level, "Print Kernel Page Table\n");
+	for(index = 0; index < PAGE_TABLE_LEN; index++)
+	{
+		  TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
+	}
+}
+
+void printUserPageTable(int level)
+{
+	TracePrintf(2048, "Print User Page Table\n");
+	for(index = 0; index < PAGE_TABLE_LEN; index++)
+	{
+		  TracePrintf(2048, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
+	}
+}
+
 void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 {
 	TracePrintf(512, "trapKernel: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
@@ -231,11 +249,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		TracePrintf(2048, "Allocate page for data: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 
-	TracePrintf(2048, "Print Kernel Page Table\n");
-	for(index = 0; index < PAGE_TABLE_LEN; index++)
-	{
-		  TracePrintf(2048, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
-	}
+	printKernelPageTable(2048);
 
 	//assign kernel stack
 	limit = UP_TO_PAGE(KERNEL_STACK_LIMIT) >> PAGESHIFT;
@@ -254,11 +268,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		TracePrintf(2048, "Allocate page for stack: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 
-	TracePrintf(2048, "Print User Page Table\n");
-	for(index = 0; index < PAGE_TABLE_LEN; index++)
-	{
-		  TracePrintf(2048, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
-	}
+	printUserPageTable(2048);
 	
 	//use a linked list to store the available physica pages
 	//physicalPageNodeHead = 0;
