@@ -76,6 +76,7 @@ void freePhysicalPage(int pfn)
 }
 
 //Insert and remove from ready queue
+/*
 void addFirstToReadyQueue(int pid, struct pte *pageTable[PAGE_TABLE_LEN], SavedContext ctxp)
 {
 	struct PCBNode *newPCBNode;
@@ -124,6 +125,7 @@ struct PCBNode *removeFirstFromReadyQueue()
 	readyQuqueHead = readyQuqueHead -> next;
 	return nodeTobeRemove;
 }
+*/
 
 //Util print functions for debug
 void printPhysicalPageLinkedList()
@@ -197,6 +199,7 @@ void trapTTYTransmit(ExceptionStackFrame *exceptionStackFrame)
 	TracePrintf(512, "trapTTYTransmit: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
 }
 
+/*
 SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 {
 	((struct PCBNode *)p1) -> PID = currentPID;
@@ -210,6 +213,7 @@ SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 	WriteRegister(REG_PTR0, userPageTableAddress);
 	return currentSavedContext; 
 }
+*/
 
 extern int SetKernelBrk(void *addr)
 {
