@@ -15,8 +15,8 @@ void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
 void *new_brk;
 
 //Page Tables
-struct pte KernelPageTable[PAGE_TABLE_LEN];
-struct pte UserPageTable[PAGE_TABLE_LEN];
+struct pte *KernelPageTable;
+struct pte *UserPageTable;
 
 //Current process
 int currentPID;
@@ -268,6 +268,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		physicalPages[index] = newNode;
 	}
 	
+	KernelPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
 	//initialize the page Table
 	for( index = 0; index < PAGE_TABLE_LEN; index++ )
 	{
@@ -280,6 +281,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	}
 	TracePrintf(1024, "PAGE_TABLE_LEN: %d, KernelPageTable Size: %d\n", PAGE_TABLE_LEN, sizeof(KernelPageTable));
 
+	UserPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
 	for( index = 0; index < PAGE_TABLE_LEN; index++ )
 	{
 		  struct pte PTE;
