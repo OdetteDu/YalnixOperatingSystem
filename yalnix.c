@@ -7,8 +7,18 @@
 #include <comp421/hardware.h>
 
 extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
+
+//interrupt vector table
 void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
 
+//Kernel brk
+void *new_brk;
+
+//Page Tables
+struct pte KernelPageTable[PAGE_TABLE_LEN];
+struct pte UserPageTable[PAGE_TABLE_LEN];
+
+//Available Physical Pages
 struct PhysicalPageNode
 {
 	  int pageNumber;
@@ -18,11 +28,19 @@ struct PhysicalPageNode
 int numPhysicalPagesLeft;
 struct PhysicalPageNode *physicalPageNodeHead;
 
-struct pte KernelPageTable[PAGE_TABLE_LEN];
-struct pte UserPageTable[PAGE_TABLE_LEN];
+//PCB
+struct PCBNode
+{
+	  int PID;
+	  struct pte *pageTable;
+	  SavedContext *ctxp;
+	  struct PCBNode *next;
+};
 
-void *new_brk;
+struct PCBNode *readyQuqueHead;
+struct PCBNode *readyQueueTail;
 
+//Allocate and free physical pages
 int allocatePhysicalPage()
 {
 	struct PhysicalPageNode *allocatedPhysicalPageNode = physicalPageNodeHead;
@@ -53,6 +71,57 @@ void freePhysicalPage(int pfn)
 	numPhysicalPagesLeft++;
 }
 
+//Insert and remove from ready queue
+void addFirstToReadyQueue(int pid, struct pte *ptp, SavedContext *ctxp)
+{
+	struct PCBNode *newPCBNode;
+	newPCBNode = (struct PCBNode *)malloc(sizeof(struct PCBNode));
+	newPCBNode -> PID = pid;
+	newPCBNode -> pageTable = ptp;
+	newPCBNode -> ctxp = ctxp;
+
+	if( readyQuqueHead == NULL )
+	{
+		newPCBNode -> next = NULL;
+		readyQuqueHead = newPCBNode;
+		readyQueueTail = newPCBNode;
+	}
+	else
+	{
+		newPCBNode -> next = readyQuqueHead;
+		readyQuqueHead = newPCBNode;
+	}
+}
+
+void addLastToReadyQueue(int pid, struct pte *ptp, SavedContext *ctxp)
+{
+	struct PCBNode *newPCBNode;
+	newPCBNode = (struct PCBNode *)malloc(sizeof(struct PCBNode));
+	newPCBNode -> PID = pid;
+	newPCBNode -> pageTable = ptp;
+	newPCBNode -> ctxp = ctxp;
+
+	if( readyQuqueHead == NULL )
+	{
+		newPCBNode -> next = NULL;
+		readyQuqueHead = newPCBNode;
+		readyQueueTail = newPCBNode;
+	}
+	else
+	{
+		readyQueueTail -> next = newPCBNode;
+		readyQueueTail = newPCBNode;
+	}
+}
+
+struct PCBNode *removeFirstFromReadyQueue()
+{
+	struct PCBNode *nodeTobeRemove = readyQuqueHead;
+	readyQuqueHead = readyQuqueHead -> next;
+	return nodeTobeRemove;
+}
+
+//Util print functions for debug
 void printPhysicalPageLinkedList()
 {
 	TracePrintf(3072, "Free Physical Pages: \n");
