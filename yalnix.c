@@ -20,7 +20,7 @@ struct pte *UserPageTable;
 
 //Current process
 int currentPID;
-SavedContext *currentSavedContext;
+SavedContext currentSavedContext;
 
 //Available Physical Pages
 struct PhysicalPageNode
@@ -36,7 +36,7 @@ struct PhysicalPageNode *physicalPageNodeHead;
 struct PCBNode
 {
 	  int PID;
-	  struct pte *pageTable[PAGE_TABLE_LEN];
+	  struct pte *pageTable;
 	  SavedContext ctxp;
 	  struct PCBNode *next;
 };
@@ -76,8 +76,7 @@ void freePhysicalPage(int pfn)
 }
 
 //Insert and remove from ready queue
-/*
-void addFirstToReadyQueue(int pid, struct pte *pageTable[PAGE_TABLE_LEN], SavedContext ctxp)
+void addFirstToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp)
 {
 	struct PCBNode *newPCBNode;
 	newPCBNode = (struct PCBNode *)malloc(sizeof(struct PCBNode));
@@ -98,7 +97,7 @@ void addFirstToReadyQueue(int pid, struct pte *pageTable[PAGE_TABLE_LEN], SavedC
 	}
 }
 
-void addLastToReadyQueue(int pid, struct pte *pageTable[PAGE_TABLE_LEN], SavedContext ctxp)
+void addLastToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp)
 {
 	struct PCBNode *newPCBNode;
 	newPCBNode = (struct PCBNode *)malloc(sizeof(struct PCBNode));
@@ -125,7 +124,6 @@ struct PCBNode *removeFirstFromReadyQueue()
 	readyQuqueHead = readyQuqueHead -> next;
 	return nodeTobeRemove;
 }
-*/
 
 //Util print functions for debug
 void printPhysicalPageLinkedList()
@@ -199,21 +197,18 @@ void trapTTYTransmit(ExceptionStackFrame *exceptionStackFrame)
 	TracePrintf(512, "trapTTYTransmit: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
 }
 
-/*
 SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 {
 	((struct PCBNode *)p1) -> PID = currentPID;
-	((struct PCBNode *)p1) -> pageTable = &UserPageTable;
+	((struct PCBNode *)p1) -> pageTable = UserPageTable;
 	((struct PCBNode *)p1) -> ctxp = currentSavedContext;
 	currentPID = ((struct PCBNode *)p2) -> PID;
-	struct pte *pt = ((struct PCBNode *)p2) -> pageTable;
-	UserPageTable = &pt;
+	UserPageTable = ((struct PCBNode *)p2) -> pageTable;
 	currentSavedContext = ((struct PCBNode *)p2) -> ctxp;
 	RCS421RegVal userPageTableAddress = (RCS421RegVal)UserPageTable;
 	WriteRegister(REG_PTR0, userPageTableAddress);
-	return currentSavedContext; 
+	return &currentSavedContext; 
 }
-*/
 
 extern int SetKernelBrk(void *addr)
 {
