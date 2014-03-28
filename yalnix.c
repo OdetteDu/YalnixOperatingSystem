@@ -261,10 +261,10 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   //Running the idle process
   TracePrintf(512, "ExceptionStackFrame: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", frame->vector, frame->code, frame->addr, frame->psr, frame->pc, frame->sp, frame->regs);
   
-  LoadProgram("idle", cmd_args, frame);
   /* build idle and init */
+  
+  LoadProgram("idle", cmd_args, frame);
 
-  //strcut PCBNode *p1 = buildPCB(ACTIVE, UserPageTable
   return;
 }
 

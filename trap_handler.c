@@ -4,6 +4,7 @@
 #include "util.h"
 #include "trap_handler.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 static int clockCount = 0;
 
@@ -29,6 +30,17 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	      exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 	      exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 	      exceptionStackFrame->regs);
+  
+  if(clockCount == 0)
+  {
+	    clockCount = 1;
+		TracePrintf(510, "Waiting for the next trap clock to do context switch");
+  }
+  else
+  {
+	    clockCount = 0;
+		//Context Switch
+  }
  
 }
 
@@ -53,13 +65,13 @@ extern void trapIllegal(ExceptionStackFrame *exceptionStackFrame)
   else if (code == ILL_ILLTRP)
     msg = "Illegal software trap";
   else if (code == BUS_ADRALN + 20)
-    sprintf(msg, "Invalid address alignment %p", exceptionStackFrame->addr);
+    printf(msg, "Invalid address alignment %p", exceptionStackFrame->addr);
   else if (code == SI_KERNEL)
     msg = "Linux kernel SIGILL";
   else if (code == SI_USER)
     msg = "Received SIGILL from user";
   else
-    sprintf(msg, "Unknown code 0x%x", code);
+    printf(msg, "Unknown code 0x%x", code);
   
   //KernelExit(ERROR);
 }
@@ -114,7 +126,7 @@ extern void trapMath(ExceptionStackFrame *exceptionStackFrame)
     msg = "Received SIGFPE from user";
     break;
   default:
-    sprintf(msg, "Unknown code %d", exceptionStackFrame->code);
+    printf(msg, "Unknown code %d", exceptionStackFrame->code);
   }
 
   //Kernel_Exit(ERROR);
