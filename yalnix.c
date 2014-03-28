@@ -15,6 +15,9 @@
 int numPhysicalPagesLeft;
 struct PhysicalPageNode *physicalPageNodeHead;
 
+//PID Generator
+unsigned int PIDGenerator;
+
 //VM flag
 unsigned int vm_enabled;
 
@@ -38,10 +41,11 @@ struct PCBNode *readyQueueTail;
 
 /* Function declaration */
 extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2);
+extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
 
 extern int nextPID()
 { 
-	return currentPID++;
+	return PIDGenerator++;
 }
 
 /*

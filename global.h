@@ -3,16 +3,15 @@
 //interrupt vector table
 extern void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
 
+//PID Generator
+extern unsigned int PIDGenerator;
+
 //Kernel brk
 extern void *new_brk;
 
 //Page Tables
 extern struct pte *KernelPageTable;
 extern struct pte *UserPageTable;
-
-//Current process
-extern unsigned int currentPID;
-extern SavedContext currentSavedContext;
 
 //Available Physical Pages
 struct PhysicalPageNode

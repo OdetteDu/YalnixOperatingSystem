@@ -34,7 +34,7 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
   if(clockCount == 0)
   {
 	    clockCount = 1;
-		TracePrintf(510, "Waiting for the next trap clock to do context switch");
+		TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
   }
   else
   {
