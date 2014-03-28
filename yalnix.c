@@ -5,24 +5,11 @@
 #include <comp421/loadinfo.h>
 #include <comp421/yalnix.h>
 #include <comp421/hardware.h>
+#include "trap_handler.h"
 
 extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
-
-//interrupt vector table
 void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
 
-//Kernel brk
-void *new_brk;
-
-//Page Tables
-struct pte *KernelPageTable;
-struct pte *UserPageTable;
-
-//Current process
-int currentPID;
-SavedContext currentSavedContext;
-
-//Available Physical Pages
 struct PhysicalPageNode
 {
 	  int pageNumber;
@@ -31,201 +18,32 @@ struct PhysicalPageNode
 
 int numPhysicalPagesLeft;
 struct PhysicalPageNode *physicalPageNodeHead;
+struct PhysicalPageNode *physicalPageNodeCurrent;
 
-//PCB
-struct PCBNode
-{
-	  int PID;
-	  struct pte *pageTable;
-	  SavedContext ctxp;
-	  struct PCBNode *next;
-};
+struct pte KernelPageTable[PAGE_TABLE_LEN];
+struct pte UserPageTable[PAGE_TABLE_LEN];
 
-struct PCBNode *readyQuqueHead;
-struct PCBNode *readyQueueTail;
-
-//Allocate and free physical pages
 int allocatePhysicalPage()
 {
-	struct PhysicalPageNode *allocatedPhysicalPageNode = physicalPageNodeHead;
-	physicalPageNodeHead = allocatedPhysicalPageNode -> next;
-	int number = allocatedPhysicalPageNode -> pageNumber;
-	free(allocatedPhysicalPageNode);
-	numPhysicalPagesLeft--;
-	return number;
+	struct PhysicalPageNode physicalPageNode = *physicalPageNodeHead;
+	physicalPageNodeHead = physicalPageNode.next;
+	return physicalPageNode.pageNumber;
 }
 
 void freePhysicalPage(int pfn)
 {
-	struct PhysicalPageNode *newPhysicalPageNode;
-	newPhysicalPageNode = (struct PhysicalPageNode *)malloc(sizeof(struct PhysicalPageNode));
-	newPhysicalPageNode -> pageNumber = pfn;
-
-	if( physicalPageNodeHead != NULL)
-	{
-		newPhysicalPageNode -> next = physicalPageNodeHead -> next;
-		physicalPageNodeHead -> next = newPhysicalPageNode;
-	}
-	else
-	{
-		newPhysicalPageNode -> next = NULL;
-		physicalPageNodeHead = newPhysicalPageNode;
-	}
-
-	numPhysicalPagesLeft++;
+	struct PhysicalPageNode physicalPageNode;
+	physicalPageNode.pageNumber = pfn;
+	physicalPageNode.next = 0;
+	physicalPageNodeCurrent -> next = &physicalPageNode;
+	physicalPageNodeCurrent = &physicalPageNode;
 }
 
-//Insert and remove from ready queue
-void addFirstToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp)
-{
-	struct PCBNode *newPCBNode;
-	newPCBNode = (struct PCBNode *)malloc(sizeof(struct PCBNode));
-	newPCBNode -> PID = pid;
-	newPCBNode -> pageTable = pageTable;
-	newPCBNode -> ctxp = ctxp;
 
-	if( readyQuqueHead == NULL )
-	{
-		newPCBNode -> next = NULL;
-		readyQuqueHead = newPCBNode;
-		readyQueueTail = newPCBNode;
-	}
-	else
-	{
-		newPCBNode -> next = readyQuqueHead;
-		readyQuqueHead = newPCBNode;
-	}
-}
-
-void addLastToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp)
-{
-	struct PCBNode *newPCBNode;
-	newPCBNode = (struct PCBNode *)malloc(sizeof(struct PCBNode));
-	newPCBNode -> PID = pid;
-	newPCBNode -> pageTable = pageTable;
-	newPCBNode -> ctxp = ctxp;
-
-	if( readyQuqueHead == NULL )
-	{
-		newPCBNode -> next = NULL;
-		readyQuqueHead = newPCBNode;
-		readyQueueTail = newPCBNode;
-	}
-	else
-	{
-		readyQueueTail -> next = newPCBNode;
-		readyQueueTail = newPCBNode;
-	}
-}
-
-struct PCBNode *removeFirstFromReadyQueue()
-{
-	struct PCBNode *nodeTobeRemove = readyQuqueHead;
-	readyQuqueHead = readyQuqueHead -> next;
-	return nodeTobeRemove;
-}
-
-//Util print functions for debug
-void printPhysicalPageLinkedList()
-{
-	TracePrintf(3072, "Free Physical Pages: \n");
-	struct PhysicalPageNode *current = physicalPageNodeHead;
-	while(current != NULL)
-	{
-		TracePrintf(3072, "%d\n", current -> pageNumber);
-		current = current -> next;
-	}
-}
-
-void printKernelPageTable(int level)
-{
-	TracePrintf(level, "Print Kernel Page Table\n");
-	int index;
-	for(index = 0; index < PAGE_TABLE_LEN; index++)
-	{
-		  TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
-	}
-}
-
-void printUserPageTable(int level)
-{
-	TracePrintf(level, "Print User Page Table\n");
-	int index;
-	for(index = 0; index < PAGE_TABLE_LEN; index++)
-	{
-		  TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
-	}
-}
-
-void trapKernel(ExceptionStackFrame *exceptionStackFrame)
-{
-	TracePrintf(512, "trapKernel: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
-    
-}
-
-void trapClock(ExceptionStackFrame *exceptionStackFrame)
-{
-	TracePrintf(512, "trapClock: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
-    
-}
-
-void trapIllegal(ExceptionStackFrame *exceptionStackFrame)
-{
-	TracePrintf(512, "trapIllegal: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
-    
-}
-
-void trapMemory(ExceptionStackFrame *exceptionStackFrame)
-{
-	TracePrintf(512, "trapMemory: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
-    
-}
-
-void trapMath(ExceptionStackFrame *exceptionStackFrame)
-{
-    
-	TracePrintf(512, "trapMath: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
-}
-
-void trapTTYReceive(ExceptionStackFrame *exceptionStackFrame)
-{
-	TracePrintf(512, "trapTTYReceive: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
-}
-
-void trapTTYTransmit(ExceptionStackFrame *exceptionStackFrame)
-{
-	TracePrintf(512, "trapTTYTransmit: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
-}
-
-SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
-{
-	((struct PCBNode *)p1) -> PID = currentPID;
-	((struct PCBNode *)p1) -> pageTable = UserPageTable;
-	((struct PCBNode *)p1) -> ctxp = currentSavedContext;
-	currentPID = ((struct PCBNode *)p2) -> PID;
-	UserPageTable = ((struct PCBNode *)p2) -> pageTable;
-	currentSavedContext = ((struct PCBNode *)p2) -> ctxp;
-	RCS421RegVal userPageTableAddress = (RCS421RegVal)UserPageTable;
-	WriteRegister(REG_PTR0, userPageTableAddress);
-	return &currentSavedContext; 
-}
-
+/** System initiations **/
 extern int SetKernelBrk(void *addr)
 {
 	TracePrintf(512, "Set Kernel Brk Called: addr >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n", (long)addr >> PAGESHIFT, UP_TO_PAGE(addr), UP_TO_PAGE(addr) >> PAGESHIFT, DOWN_TO_PAGE(addr), DOWN_TO_PAGE(addr) >> PAGESHIFT);
-	if(new_brk == NULL)
-	{
-		  new_brk = addr;
-		  TracePrintf(1280, "Set new_brk from NULL to %d\n", new_brk);
-	}
-	else
-	{
-		  if(addr > new_brk)
-		  {
-				TracePrintf(1280, "Set new_brk from %d to %d\n", new_brk, addr);
-				new_brk = addr;
-		  }
-	}
 	return 0;
 }
 
@@ -253,17 +71,12 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	numPhysicalPagesLeft = numOfPagesAvailable;
 	TracePrintf(1024, "Total number of physical pages: %d, Available pages: %d\n", numOfPagesAvailable, numPhysicalPagesLeft);
 
-    struct PhysicalPageNode *physicalPages[numOfPagesAvailable];
+	int physicalPages[numOfPagesAvailable];//placed on bss????
 	for ( index=0; index<numOfPagesAvailable; index++)
 	{
-		struct PhysicalPageNode *newNode;
-		newNode = (struct PhysicalPageNode *) malloc(sizeof(struct PhysicalPageNode));
-		newNode -> pageNumber = index;
-		newNode -> next = NULL;
-		physicalPages[index] = newNode;
+		physicalPages[index] = 0;
 	}
 	
-	KernelPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
 	//initialize the page Table
 	for( index = 0; index < PAGE_TABLE_LEN; index++ )
 	{
@@ -276,7 +89,6 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	}
 	TracePrintf(1024, "PAGE_TABLE_LEN: %d, KernelPageTable Size: %d\n", PAGE_TABLE_LEN, sizeof(KernelPageTable));
 
-	UserPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
 	for( index = 0; index < PAGE_TABLE_LEN; index++ )
 	{
 		  struct pte PTE;
@@ -296,8 +108,6 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
 	TracePrintf(1024, "orig_brk: %d, orig_brk >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n",orig_brk, (long)orig_brk >> PAGESHIFT, UP_TO_PAGE(orig_brk), UP_TO_PAGE(orig_brk) >> PAGESHIFT, DOWN_TO_PAGE(orig_brk), DOWN_TO_PAGE(orig_brk) >> PAGESHIFT);
 
-	TracePrintf(1024, "new_brk: %d, new_brk >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n",new_brk, (long)new_brk >> PAGESHIFT, UP_TO_PAGE(new_brk), UP_TO_PAGE(new_brk) >> PAGESHIFT, DOWN_TO_PAGE(new_brk), DOWN_TO_PAGE(new_brk) >> PAGESHIFT);
-
 	TracePrintf(1024, "KERNEL_STACK_BASE: %d (%d), KERNEL_STACK_LIMIT: %d (%d), KERNEL_STACK_PAGES: %d, KERNEL_STACK_SIZE: %d, USER_STACK_LIMIT: %d (%d)\n", KERNEL_STACK_BASE, KERNEL_STACK_BASE >> PAGESHIFT, KERNEL_STACK_LIMIT, KERNEL_STACK_LIMIT >> PAGESHIFT, KERNEL_STACK_PAGES, KERNEL_STACK_SIZE, USER_STACK_LIMIT, USER_STACK_LIMIT >> PAGESHIFT);
 
 	TracePrintf(2048, "KernelPageTable: %d %d %d\n", KernelPageTable, &KernelPageTable, *&KernelPageTable);
@@ -306,7 +116,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	int limit;
     
 	//assign kernel text
-    limit = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN;
+	limit = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN;
 	for(index = (VMEM_1_BASE >> PAGESHIFT) - PAGE_TABLE_LEN; index < limit; index++)
 	{
 		struct pte PTE;
@@ -315,16 +125,14 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_EXEC;
 		KernelPageTable[index] = PTE;
-		struct PhysicalPageNode *node = physicalPages[index + PAGE_TABLE_LEN];
-		free(node);
-        physicalPages[index + PAGE_TABLE_LEN] = NULL;
+		physicalPages[index + PAGE_TABLE_LEN] = 1;
 		numPhysicalPagesLeft --;
 		TracePrintf(2048, "Allocate page for text: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
 
 	//assign kernel data and bss
-	limit = (UP_TO_PAGE(new_brk) >> PAGESHIFT) - PAGE_TABLE_LEN;
-	for(index = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN; index <= limit; index++)
+	limit = (UP_TO_PAGE(orig_brk) >> PAGESHIFT) - PAGE_TABLE_LEN;
+	for(index = (UP_TO_PAGE(etextAddr) >> PAGESHIFT) - PAGE_TABLE_LEN; index < limit; index++)
 	{
 		struct pte PTE;
 		PTE.valid = 1; 
@@ -332,14 +140,10 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		KernelPageTable[index] = PTE;
-		struct PhysicalPageNode *node = physicalPages[index + PAGE_TABLE_LEN];
-		free(node);
-        physicalPages[index + PAGE_TABLE_LEN] = NULL;
+		physicalPages[index + PAGE_TABLE_LEN] = 1;
 		numPhysicalPagesLeft --;
 		TracePrintf(2048, "Allocate page for data: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
-
-	printKernelPageTable(2048);
 
 	//assign kernel stack
 	limit = UP_TO_PAGE(KERNEL_STACK_LIMIT) >> PAGESHIFT;
@@ -351,41 +155,57 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 		PTE.uprot = PROT_NONE;
 		PTE.kprot = PROT_READ | PROT_WRITE;
 		UserPageTable[index] = PTE;
-		struct PhysicalPageNode *node = physicalPages[index];
-		free(node);
-        physicalPages[index] = NULL;
+		physicalPages[index] = 1;
 		numPhysicalPagesLeft --;
 		TracePrintf(2048, "Allocate page for stack: vpn(%d), pfn(%d)\n", index, PTE.pfn);
 	}
-
-	printUserPageTable(2048);
 	
+	
+	TracePrintf(4096, "Debugger Break Point: 145\n");
 	//use a linked list to store the available physica pages
-	//physicalPageNodeHead = 0;
-	//physicalPageNodeCurrent = 0;
+	physicalPageNodeHead = 0;
+	physicalPageNodeCurrent = 0;
 	 
-	TracePrintf(1024, "Number of physical pages available after allocate to Kernel: %d\n", numPhysicalPagesLeft);
-	numPhysicalPagesLeft = 0;
-	for(index = 0; index < numOfPagesAvailable; index++)
+	TracePrintf(4096, "Debugger Break Point: 150\n");
+	TracePrintf(1024, "Number of Physical Pages Available: %d\n", numPhysicalPagesLeft);
+	for(index = 1; index < sizeof(physicalPages); index++)
 	{
-		if(physicalPages[index] != NULL)
+		if(physicalPages[index] == 0)
 		{
-			if(physicalPageNodeHead == NULL)
+			TracePrintf(4096, "Debugger Break Point: 155\n");
+			//create a linked node
+			struct PhysicalPageNode physicalPageNode;
+			physicalPageNode.pageNumber = index;
+			physicalPageNode.next = 0;
+
+			TracePrintf(4096, "Debugger Break Point: 161\n");
+			if(physicalPageNodeHead == 0)
 			{
-				  physicalPageNodeHead = physicalPages[index];
+				TracePrintf(4096, "Debugger Break Point: 164\n");
+				physicalPageNodeHead = &physicalPageNode;
+				physicalPageNodeCurrent = &physicalPageNode;
+				TracePrintf(4096, "Debugger Break Point: 167\n");
 			}
 			else
 			{
-				 physicalPages[index] -> next = physicalPageNodeHead;
-				 physicalPageNodeHead = physicalPages[index];
+				physicalPageNodeCurrent -> next = &physicalPageNode;
+				physicalPageNodeCurrent = &physicalPageNode;
 			}
-			numPhysicalPagesLeft++;
+
 		}
 	}
 
-	TracePrintf(1796, "Number of free physical pages available after building linked list: %d\n", numPhysicalPagesLeft);
-	printPhysicalPageLinkedList();
+	TracePrintf(2048, "Print Kernel Page Table\n");
+	for(index = 0; index < PAGE_TABLE_LEN; index++)
+	{
+		  TracePrintf(2048, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
+	}
 
+	TracePrintf(2048, "Print User Page Table\n");
+	for(index = 0; index < PAGE_TABLE_LEN; index++)
+	{
+		  TracePrintf(2048, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
+	}
 	//Write the page table address to the register and enable virtual memory
 	RCS421RegVal kernelPageTableAddress = (RCS421RegVal)KernelPageTable;
 	WriteRegister(REG_PTR1, kernelPageTableAddress);
@@ -396,58 +216,52 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	//Running the idle process
 	TracePrintf(512, "ExceptionStackFrame: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", frame->vector, frame->code, frame->addr, frame->psr, frame->pc, frame->sp, frame->regs);
 
-	LoadProgram("idle", cmd_args, frame);
+	LoadProgram("idle", 0, frame);
 }
 
-extern int KernelFork(void)
+extern int Fork(void)
 {
 	TracePrintf(512, "Fork\n");
 	return 0;
 }
 
-extern int KernelExec(char *filename, char **argvec)
+extern int Exec(char *filename, char **argvec)
 {
 	TracePrintf(512, "Exec: filename(%s), argvec(%s)\n", filename, argvec);
 	return 0;
 }
 
-extern int KernelExit(int status)
-{
-	TracePrintf(512, "Exit: status(%d)\n", status);
-	return 0;
-}
-
-extern int KernelWait(int *status_ptr)
+extern int Wait(int *status_ptr)
 {
 	TracePrintf(512, "Wait: status_ptr(%d)\n", *status_ptr);
 	return 0;
 }
 
-extern int KernelGetPid(void)
+extern int GetPid(void)
 {
 	TracePrintf(512, "GetPid\n");
 	return 0;
 }
 
-extern int KernelBrk(void *addr)
+extern int Brk(void *addr)
 {
 	TracePrintf(512, "Brk: addr(%d)\n", addr);
 	return 0;
 }
 
-extern int KernelDelay(int clock_ticks)
+extern int Delay(int clock_ticks)
 {
 	TracePrintf(512, "Delay: clock_ticks(%d)\n", clock_ticks);
 	return 0;
 }
 
-extern int KernelTtyRead(int tty_id, void *buf, int len)
+extern int TtyRead(int tty_id, void *buf, int len)
 {
 	TracePrintf(512, "TtyRead: tty_id(%d), buf(%s), len(%d)\n", tty_id, buf, len);
 	return 0;
 }
 
-extern int KernelTtyWrite(int tty_id, void *buf, int len)
+extern int TtyWrite(int tty_id, void *buf, int len)
 {
 	TracePrintf(512, "TtyWrite: tty_id(%d), buf(%s), len(%d)\n", tty_id, buf, len);
 	return 0;
@@ -589,7 +403,6 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
     >>>> the new program being loaded.
 	*/
 	int totalPageNeeded = text_npg + data_bss_npg + stack_npg;
-	TracePrintf(1536, "Total Page Needed: %d\n", totalPageNeeded);
 
     if (numPhysicalPagesLeft < totalPageNeeded) {
 	TracePrintf(0,
@@ -603,7 +416,6 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
     //>>>> Initialize sp for the current process to (char *)cpp.
     //>>>> The value of cpp was initialized above.
 	frame -> sp = (char *)cpp;
-	TracePrintf(1536, "Set frame -> sp\n");
 
     /*
      *  Free all the old physical memory belonging to this process,
@@ -629,7 +441,6 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		}
 		PTE -> valid = 0;
 	}
-	TracePrintf(1536, "Clear Region 0\n");
 
     /*
      *  Fill in the page table with the right number of text,
@@ -648,7 +459,6 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> valid = 0;
 		PTE -> pfn = 0;
 	}
-	TracePrintf(1536, "Set first MEM_INVALID_PAGES invalid.\n");
 
     /* First, the text pages */
 	/*
@@ -659,7 +469,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
     >>>>     uprot = PROT_READ | PROT_EXEC
     >>>>     pfn   = a new page of physical memory
 	*/
-	for( index = MEM_INVALID_PAGES; index < MEM_INVALID_PAGES + text_npg; index ++)
+	for( index = MEM_INVALID_SIZE; index < MEM_INVALID_SIZE + text_npg; index ++)
 	{
 		struct pte *PTE = &UserPageTable[index];
 		PTE -> valid = 1;
@@ -667,7 +477,6 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> uprot = PROT_READ | PROT_EXEC;
 		PTE -> pfn = allocatePhysicalPage();
 	}
-	TracePrintf(1536, "Initialize text pages\n");
 
     /* Then the data and bss pages */
 	/*
@@ -687,7 +496,6 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> uprot = PROT_READ | PROT_WRITE;
 		PTE -> pfn = allocatePhysicalPage();
 	}
-	TracePrintf(1536, "Initialize data and bss pages\n");
 
     /* And finally the user stack pages */
 	/*
@@ -700,18 +508,14 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
     >>>>     uprot = PROT_READ | PROT_WRITE
     >>>>     pfn   = a new page of physical memory
 	*/
-	TracePrintf(1792, "USER_STACK_LIMIT: %d, USER_STACK_LIMIT >> PAGESHIFT: %d, stack_npg: %d", USER_STACK_LIMIT, USER_STACK_LIMIT >> PAGESHIFT, stack_npg);
-	for(index = (USER_STACK_LIMIT >> PAGESHIFT); index >= (USER_STACK_LIMIT >> PAGESHIFT) - stack_npg; index --)
+	for(index = (USER_STACK_LIMIT >> PAGESHIFT) -1; index >= USER_STACK_LIMIT - stack_npg; index --)
 	{
-		TracePrintf(1792, "Allocate %d for user stack, total %d pages\n", index, stack_npg);
 		struct pte *PTE = &UserPageTable[index];
 		PTE -> valid = 1;
 		PTE -> kprot = PROT_READ | PROT_WRITE;
 		PTE -> uprot = PROT_READ | PROT_WRITE;
 		PTE -> pfn = allocatePhysicalPage();
 	}
-	TracePrintf(1536, "Initialize stack pages\n");
-	printUserPageTable(1920);
 
     /*
      *  All pages for the new address space are now in place.  Flush
@@ -736,7 +540,6 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 	*/
 	return (-2);
     }
-	TracePrintf(1536, "Read the text and data from the file into memory\n");
 
     close(fd);			/* we've read it all now */
 
@@ -753,7 +556,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		  struct pte *PTE = &UserPageTable[index];
 		  PTE -> kprot = PROT_READ | PROT_EXEC;
 	}
-	TracePrintf(1536, "Make the Kernel PROT_READ | PROT_EXEC\n");
+
 
     WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
 
@@ -768,7 +571,6 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
      */
     //>>>> Initialize pc for the current process to (void *)li.entry
 	frame -> pc = (void *)li.entry;
-	TracePrintf(1536, "Set frame -> pc\n");
 
     /*
      *  Now, finally, build the argument list on the new stack.
@@ -803,7 +605,6 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 	{
 		frame -> regs[index] = 0;
 	}
-	TracePrintf(1536, "Initialize regs[]\n");
 
     return (0);
 }
