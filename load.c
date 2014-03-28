@@ -6,6 +6,7 @@
 #include <comp421/hardware.h>
 #include <comp421/loadinfo.h>
 #include "global.h"
+#include "util.h"
 
 /* GLobal var */
 

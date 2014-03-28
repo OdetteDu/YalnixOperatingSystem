@@ -8,8 +8,14 @@
 #include "trap_handler.h"
 #include "global.h"
 #include "kernel_call.h"
+#include "util.h"
 
 extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
+
+/* Initlize variables */
+//VM flag
+
+unsigned int vm_enabled;
 
 //interrupt vector table
 void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
@@ -24,28 +30,11 @@ struct pte *UserPageTable;
 //Current process
 int currentPID;
 SavedContext currentSavedContext;
-
-//Available Physical Pages
-/*
-struct PhysicalPageNode
-{
-	  int pageNumber;
-	  struct PhysicalPageNode *next;
-};*/
-
+//physical pages
 int numPhysicalPagesLeft;
 struct PhysicalPageNode *physicalPageNodeHead;
 
-//PCB
-/*
-struct PCBNode
-{
-	  int PID;
-	  struct pte *pageTable;
-	  SavedContext ctxp;
-	  struct PCBNode *next;
-};*/
-
+//queue list
 struct PCBNode *readyQuqueHead;
 struct PCBNode *readyQueueTail;
 
@@ -128,38 +117,6 @@ struct PCBNode *removeFirstFromReadyQueue()
 	struct PCBNode *nodeTobeRemove = readyQuqueHead;
 	readyQuqueHead = readyQuqueHead -> next;
 	return nodeTobeRemove;
-}
-
-//Util print functions for debug
-extern void printPhysicalPageLinkedList()
-{
-	TracePrintf(3072, "Free Physical Pages: \n");
-	struct PhysicalPageNode *current = physicalPageNodeHead;
-	while(current != NULL)
-	{
-		TracePrintf(3072, "%d\n", current -> pageNumber);
-		current = current -> next;
-	}
-}
-
-extern void printKernelPageTable(int level)
-{
-	TracePrintf(level, "Print Kernel Page Table\n");
-	int index;
-	for(index = 0; index < PAGE_TABLE_LEN; index++)
-	{
-		  TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
-	}
-}
-
-extern void printUserPageTable(int level)
-{
-	TracePrintf(level, "Print User Page Table\n");
-	int index;
-	for(index = 0; index < PAGE_TABLE_LEN; index++)
-	{
-		  TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
-	}
 }
 
 
@@ -359,6 +316,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	RCS421RegVal userPageTableAddress = (RCS421RegVal)UserPageTable;
 	WriteRegister(REG_PTR0, userPageTableAddress);
 	WriteRegister(REG_VM_ENABLE, 1);
+	vm_enabled = 1;
 
 	//Running the idle process
 	TracePrintf(512, "ExceptionStackFrame: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", frame->vector, frame->code, frame->addr, frame->psr, frame->pc, frame->sp, frame->regs);
