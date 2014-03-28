@@ -4,6 +4,7 @@
 #include "util.h"
 #include "trap_handler.h"
 #include <stdlib.h>
+
 static int clockCount = 0;
 
 extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
