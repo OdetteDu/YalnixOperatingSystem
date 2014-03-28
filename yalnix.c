@@ -10,11 +10,12 @@
 #include "kernel_call.h"
 #include "util.h"
 
-extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
-
 /* Initlize variables */
-//VM flag
+//physical pages
+int numPhysicalPagesLeft;
+struct PhysicalPageNode *physicalPageNodeHead;
 
+//VM flag
 unsigned int vm_enabled;
 
 //interrupt vector table
@@ -26,28 +27,24 @@ void *new_brk;
 //Page Tables
 struct pte *KernelPageTable;
 struct pte *UserPageTable;
+struct pte *InitPageTable;
 
 //Current process
-unsigned int currentPID;
-SavedContext currentSavedContext;
-//physical pages
-int numPhysicalPagesLeft;
-struct PhysicalPageNode *physicalPageNodeHead;
+struct PCBNode *idle;
+struct PCBNode *current;
 
-/* Local PCB lists and ptrs*/
-struct PCBNode *activeProc;
-struct PCBNode *idleList;
-//queue list
 struct PCBNode *readyQuqueHead;
 struct PCBNode *readyQueueTail;
-struct PCBNode *blockedQueueHead, *blockedQueueTail;
 
 /* Function declaration */
 extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2);
-int nextPID();
 
-extern int nextPID(){ return currentPID++;}
+extern int nextPID()
+{ 
+	return currentPID++;
+}
 
+/*
 extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 {
  
@@ -61,6 +58,7 @@ extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
   WriteRegister(REG_PTR0, userPageTableAddress);
   return &currentSavedContext; 
 }
+*/
 
 extern int SetKernelBrk(void *addr)
 {
@@ -130,13 +128,24 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
   UserPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
   for( index = 0; index < PAGE_TABLE_LEN; index++ )
-    {
+	{
       struct pte PTE;
       PTE.valid = 0;
       PTE.pfn = 0;
       PTE.uprot = PROT_NONE;
       PTE.kprot = PROT_NONE;
       UserPageTable[index] = PTE;
+    }
+
+  InitPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+  for( index = 0; index < PAGE_TABLE_LEN; index++ )
+    {
+      struct pte PTE;
+      PTE.valid = 0;
+      PTE.pfn = 0;
+      PTE.uprot = PROT_NONE;
+      PTE.kprot = PROT_NONE;
+      InitPageTable[index] = PTE;
     }
 
   //calculated the existing use of memory
@@ -154,6 +163,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
   TracePrintf(2048, "KernelPageTable: %d %d %d\n", KernelPageTable, &KernelPageTable, *&KernelPageTable);
   TracePrintf(2048, "UserPageTable: %d %d %d\n", UserPageTable, &UserPageTable, *&UserPageTable);
+  TracePrintf(2048, "InitPageTable: %d %d %d\n", InitPageTable, &InitPageTable, *&InitPageTable);
   //assign kernel to page Table
   int limit;
     
@@ -241,8 +251,8 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   //Write the page table address to the register and enable virtual memory
   RCS421RegVal kernelPageTableAddress = (RCS421RegVal)KernelPageTable;
   WriteRegister(REG_PTR1, kernelPageTableAddress);
-  RCS421RegVal userPageTableAddress = (RCS421RegVal)UserPageTable;
-  WriteRegister(REG_PTR0, userPageTableAddress);
+  RCS421RegVal UserPageTableAddress = (RCS421RegVal)UserPageTable;
+  WriteRegister(REG_PTR0, UserPageTableAddress);
   WriteRegister(REG_VM_ENABLE, 1);
   vm_enabled = 1;
 
