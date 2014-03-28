@@ -1,16 +1,18 @@
+#ifndef _global_h
+#define _global_h
 //interrupt vector table
-void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
+extern void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
 
 //Kernel brk
-void *new_brk;
+extern void *new_brk;
 
 //Page Tables
-struct pte *KernelPageTable;
-struct pte *UserPageTable;
+extern struct pte *KernelPageTable;
+extern struct pte *UserPageTable;
 
 //Current process
-int currentPID;
-SavedContext currentSavedContext;
+extern int currentPID;
+extern SavedContext currentSavedContext;
 
 //Available Physical Pages
 struct PhysicalPageNode
@@ -19,8 +21,8 @@ struct PhysicalPageNode
 	  struct PhysicalPageNode *next;
 };
 
-int numPhysicalPagesLeft;
-struct PhysicalPageNode *physicalPageNodeHead;
+extern int numPhysicalPagesLeft;
+extern struct PhysicalPageNode *physicalPageNodeHead;
 
 //PCB
 struct PCBNode
@@ -31,6 +33,7 @@ struct PCBNode
 	  struct PCBNode *next;
 };
 
-struct PCBNode *readyQuqueHead;
-struct PCBNode *readyQueueTail;
+extern struct PCBNode *readyQuqueHead;
+extern struct PCBNode *readyQueueTail;
+#endif /* end _global_h */
 
