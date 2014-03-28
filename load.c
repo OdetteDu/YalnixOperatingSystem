@@ -14,7 +14,7 @@ int numPhysicalPagesLeft;
 struct PhysicalPageNode *physicalPageNodeHead;
 struct PCBNode *readyQuqueHead;
 struct PCBNode *readyQueueTail;
-int currentPID;
+unsigned int currentPID;
 SavedContext currentSavedContext;
 struct pte *KernelPageTable;
 struct pte *UserPageTable;

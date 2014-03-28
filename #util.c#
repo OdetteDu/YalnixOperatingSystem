@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <comp421/yalnix.h>
 #include <comp421/hardware.h>
 #include "trap_handler.h"
@@ -51,16 +50,17 @@ extern void freePhysicalPage(int pfn)
 
 /* Scheduling util */
 //Insert and remove from ready queue
-/*
-extern PCBNode *buildPCB(struct pte *pageTable, int status){
-  PCBNode* pcb;
-  pcb = (PCBNode *) malloc(sizeof(PCBNode));
+
+extern PCB* buildPCB(struct pte *pageTable, int status){
+  PCB* pcb;
+  if((pcb= (PCB *) malloc(sizeof(PCB)))==NULL) return -1;
   pcb->PID = nextPID();
   pcb->status = status;
+  pcb->idle = 0;
   pcb->pageTable = pageTable;
   return pcb;
 }
-*/
+
 /*
 
 extern void addFirstToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp)
