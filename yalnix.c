@@ -50,7 +50,23 @@ extern int nextPID()
 
 SavedContext *SwitchFunctionFromIdleToInit(SavedContext *ctxp, void *p1, void *p2)
 {
-	return &((struct PCBNode *)p2) -> ctxp; 
+  //assign Kernel Stack for InitPageTable
+  for(index = UP_TO_PAGE(KERNEL_STACK_BASE) >> PAGESHIFT; index < limit; index++)
+    {
+      struct pte PTE;
+      PTE.valid = 1;
+      PTE.pfn = allocatePhysicalPage();
+      PTE.uprot = PROT_NONE;
+      PTE.kprot = PROT_READ | PROT_WRITE;
+      InitPageTable[index] = PTE;
+      TracePrintf(1400, "Allocate page for stack in InitPageTable: vpn(%d), pfn(%d)\n", index, PTE.pfn);
+    }
+  //memcpy(dest, src, size of dest);
+  memcpy(dest, src, KERNEL_STACK_SIZE);
+
+  RCS421RegVal initPageTableAddress = (RCS421RegVal)InitPageTable;
+  WriteRegister(REG_PTR0, initPageTableAddress);
+  return &((struct PCBNode *)p2) -> ctxp; 
 }
 /*
 extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
@@ -213,7 +229,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
   printKernelPageTable(2044);
 
-  //assign kernel stack
+  //assign Kernel Stack for UserPageTable
   limit = UP_TO_PAGE(KERNEL_STACK_LIMIT) >> PAGESHIFT;
   for(index = UP_TO_PAGE(KERNEL_STACK_BASE) >> PAGESHIFT; index < limit; index++)
     {
@@ -227,10 +243,11 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
       free(node);
       physicalPages[index] = NULL;
       numPhysicalPagesLeft --;
-      TracePrintf(2048, "Allocate page for stack: vpn(%d), pfn(%d)\n", index, PTE.pfn);
+      TracePrintf(2048, "Allocate page for stack in UserPageTable: vpn(%d), pfn(%d)\n", index, PTE.pfn);
     }
 
   printUserPageTable(2044);
+
 	
   //use a linked list to store the available physica pages
   //physicalPageNodeHead = 0;
@@ -293,12 +310,14 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   current -> prevSibling = NULL;
   current -> nextSibling = NULL;
 
+  /*
   ContextSwitch(SwitchFunctionFromIdleToInit, &idle -> ctxp, idle, current);
 
   if(current -> PID != 0)
   {
 	    LoadProgram("init", cmd_args, frame);
   }
+  */
 
   return;
 }
