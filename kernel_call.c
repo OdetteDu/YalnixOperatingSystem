@@ -68,7 +68,7 @@ extern int KernelBrk(void *addr, struct PCBNode *pcb)
 			UserPageTable[i].kprot = PROT_READ | PROT_WRITE;
 			/* Need to change the pfn here */
 			UserPageTable[i].pfn = allocatePhysicalPage();
-			TracePrintf(250, "Allocate physical pages for user process: PID(%d), VPN(%d), PFN(%d).\n", pcb -> PID, i, KernelPageTable[i].pfn);
+			TracePrintf(250, "Allocate physical pages for user process: PID(%d), VPN(%d), PFN(%d).\n", pcb -> PID, i, UserPageTable[i].pfn);
 		}
 	}
 	else if (gap<0)
