@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <comp421/yalnix.h>
 #include <comp421/hardware.h>
 #include "trap_handler.h"
@@ -26,7 +25,6 @@ extern int allocatePhysicalPage()
 	int number = allocatedPhysicalPageNode -> pageNumber;
 	free(allocatedPhysicalPageNode);
 	numPhysicalPagesLeft--;
-	TracePrintf(1536, "Allocated physical page number %d\n", number);
 	return number;
 }
 
@@ -52,16 +50,17 @@ extern void freePhysicalPage(int pfn)
 
 /* Scheduling util */
 //Insert and remove from ready queue
-/*
-extern PCBNode *buildPCB(struct pte *pageTable, int status){
-  PCBNode* pcb;
-  pcb = (PCBNode *) malloc(sizeof(PCBNode));
+
+extern PCB* buildPCB(struct pte *pageTable, int status){
+  PCB* pcb;
+  if((pcb= (PCB *) malloc(sizeof(PCB)))==NULL) return -1;
   pcb->PID = nextPID();
   pcb->status = status;
+  pcb->idle = 0;
   pcb->pageTable = pageTable;
   return pcb;
 }
-*/
+
 /*
 
 extern void addFirstToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp)
@@ -118,7 +117,7 @@ extern struct PCBNode *removeFirstFromReadyQueue()
 /* Debugging util */
 extern void printPhysicalPageLinkedList()
 {
-	TracePrintf(3072, "*********Print Free Physical Pages: *************\n");
+	TracePrintf(3072, "Free Physical Pages: \n");
 	struct PhysicalPageNode *current = physicalPageNodeHead;
 	while(current != NULL)
 	{
@@ -129,7 +128,7 @@ extern void printPhysicalPageLinkedList()
 
 extern void printKernelPageTable(int level)
 {
-	TracePrintf(level, "****Print Kernel Page Table*****\n");
+	TracePrintf(level, "Print Kernel Page Table\n");
 	int index;
 	for(index = 0; index < PAGE_TABLE_LEN; index++)
 	{
@@ -139,7 +138,7 @@ extern void printKernelPageTable(int level)
 
 extern void printUserPageTable(int level)
 {
-	TracePrintf(level, "*****Print User Page Table*******\n");
+	TracePrintf(level, "Print User Page Table\n");
 	int index;
 	for(index = 0; index < PAGE_TABLE_LEN; index++)
 	{
