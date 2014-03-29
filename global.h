@@ -3,16 +3,15 @@
 //interrupt vector table
 extern void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
 
+//PID Generator
+extern unsigned int PIDGenerator;
+
 //Kernel brk
 extern void *new_brk;
 
 //Page Tables
 extern struct pte *KernelPageTable;
 extern struct pte *UserPageTable;
-
-//Current process
-extern unsigned int currentPID;
-extern SavedContext currentSavedContext;
 
 //Available Physical Pages
 struct PhysicalPageNode
@@ -38,25 +37,36 @@ extern struct PhysicalPageNode *physicalPageNodeTail;
 #define ACTIVE 3
 #define TERMINATED 4
 
+#define Delay 1
+#define Wait 2
+#define TTYRead 3
+#define TTYWrite 4
 
 //PCB
 struct PCBNode
 {
   int PID;
+  SavedContext ctxp;
+
   struct pte *pageTable;
   unsigned int stack_brk;
   unsigned int heap_brk;
-  SavedContext ctxp;
-  struct PCBNode **children;//list of children
-  struct PCBNode *parent;
+
   int status;
-  int idle;
-  int clockCount; //decides for switching.
+  int blockedReason;
+  int numTicksRemainForDelay; 
+
+  struct PCBNode *parent;
+  struct PCBNode *prevSibling;
+  struct PCBNode *nextSibling;
+  struct PCBNode *children;
 };
+
+extern int nextPID();
 
 extern struct PCBNode *readyQuqueHead;
 extern struct PCBNode *readyQueueTail;
-extern int nextPID();
+
 /* Physical page node functions */
 extern int allocatePhysicalPage();
 extern void freePhysicalPage(int pfn);
