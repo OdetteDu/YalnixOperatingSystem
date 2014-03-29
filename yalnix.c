@@ -10,11 +10,15 @@
 #include "kernel_call.h"
 #include "util.h"
 
-extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
-
 /* Initlize variables */
-//VM flag
+//physical pages
+int numPhysicalPagesLeft;
+struct PhysicalPageNode *physicalPageNodeHead;
 
+//PID Generator
+unsigned int PIDGenerator;
+
+//VM flag
 unsigned int vm_enabled;
 
 //interrupt vector table
@@ -26,29 +30,105 @@ void *new_brk;
 //Page Tables
 struct pte *KernelPageTable;
 struct pte *UserPageTable;
+struct pte *InitPageTable;
 
-//Current process
-unsigned int currentPID;
-SavedContext currentSavedContext;
 //physical pages
-int numPhysicalPagesLeft;
 struct PhysicalPageNode *physicalPageNodeHead;
 struct PhysicalPageNode *physicalPageNodeTail;
 
-/* Local PCB lists and ptrs*/
-struct PCBNode *activeProc;
-struct PCBNode *idleList;
-//queue list
+//Current process
+struct PCBNode *idle;
+struct PCBNode *active_process;
+
+//Process queue
 struct PCBNode *readyQuqueHead;
 struct PCBNode *readyQueueTail;
-struct PCBNode *blockedQueueHead, *blockedQueueTail;
 
 /* Function declaration */
 extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2);
-int nextPID();
+extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
 
-extern int nextPID(){ return currentPID++;}
+extern int nextPID()
+{ 
+	return PIDGenerator++;
+}
 
+/**
+ * @param: p1 should be the parent process and p2 should be the child
+ */
+SavedContext * initSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
+  // struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
+  struct pte *table2 = ((struct PCBNode*)p2)->pageTable;
+  
+  unsigned int i;
+  unsigned int *buffer[PAGE_TABLE_LEN];
+  
+  TracePrintf(256, "[Debug] Enter forkSwitch:\n");
+  /* Copy all valid pages from the UserPageTable
+  *  We must call fork from the active process.
+  **/
+  for(i=0; i<PAGE_TABLE_LEN;i++){
+    table2[i].valid = UserPageTable[i].valid;
+    if(UserPageTable[i].valid){//allow for full access in new table first
+      table2[i].kprot = PROT_ALL;
+      table2[i].uprot = PROT_ALL;
+      void *b = new_brk;//before alloc
+      SetKernelBrk(b+PAGESIZE);
+      buffer[i] = new_brk;//after alloc
+      memcpy(buffer[i], (void *)(i<<PAGESHIFT), PAGESIZE);
+    }
+  }
+  //swap region0 now;
+  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+  UserPageTable = table2;
+  WriteRegister(REG_PTR0, (RCS421RegVal)UserPageTable);
+  
+  /* Copy back from buffer */
+  for(i=0;i<PAGE_TABLE_LEN;i++){
+    if(UserPageTable[i].valid){
+      memcpy((unsigned int*)(i<<PAGESHIFT), buffer[i], PAGESIZE);
+      free(buffer[i]);//free is internal to malloc?? does not call setkernelpagebrk;
+                      //leave it as it is
+      UserPageTable[i].kprot = (((struct PCBNode*)p1)->pageTable)[i].kprot;
+      UserPageTable[i].uprot = (((struct PCBNode*)p1)->pageTable)[i].uprot;
+    }
+  }
+  
+  memcpy(((struct PCBNode*)p2)->ctxp, ctxp, sizeof(SavedContext));
+  active_process = p2;
+  /* Maintain the parent/children part??/ */
+  ((struct PCBNode*)p1)->child = p2;
+  ((struct PCBNode*)p2)->parent = p1;
+  //TODO: write a process queue and put p1 in the ready queue
+
+  return ((struct PCBNode*)p2)->ctxp;
+  
+}
+
+/*
+SavedContext *SwitchFunctionFromIdleToInit(SavedContext *ctxp, void *p1, void *p2)
+{
+  //assign Kernel Stack for InitPageTable
+  for(index = UP_TO_PAGE(KERNEL_STACK_BASE) >> PAGESHIFT; index < limit; index++)
+    {
+      struct pte PTE;
+      PTE.valid = 1;
+      PTE.pfn = allocatePhysicalPage();
+      PTE.uprot = PROT_NONE;
+      PTE.kprot = PROT_READ | PROT_WRITE;
+      InitPageTable[index] = PTE;
+      TracePrintf(1400, "Allocate page for stack in InitPageTable: vpn(%d), pfn(%d)\n", index, PTE.pfn);
+    }
+  //memcpy(dest, src, size of dest);
+  memcpy(dest, src, KERNEL_STACK_SIZE);
+
+  RCS421RegVal initPageTableAddress = (RCS421RegVal)InitPageTable;
+  WriteRegister(REG_PTR0, initPageTableAddress);
+  return &((struct PCBNode *)p2) -> ctxp; 
+}
+*/
+
+/*
 extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 {
  
@@ -62,6 +142,7 @@ extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
   WriteRegister(REG_PTR0, userPageTableAddress);
   return &currentSavedContext; 
 }
+*/
 
 extern int SetKernelBrk(void *addr)
 {
@@ -101,23 +182,24 @@ extern int SetKernelBrk(void *addr)
       
     }
   }
-  new_brk = addr;
-	//finally, set the address to the new break
+  new_brk = addr;//finally, set the address to the new break
 }else{// this is when virtual memory is not declared.
- 
+
+  TracePrintf(1020, "Set Kernel Brk Called: addr >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n", (long)addr >> PAGESHIFT, UP_TO_PAGE(addr), UP_TO_PAGE(addr) >> PAGESHIFT, DOWN_TO_PAGE(addr), DOWN_TO_PAGE(addr) >> PAGESHIFT);
   if(new_brk == NULL)
     {
       new_brk = addr;
-      TracePrintf(1280, "Set new_brk from NULL to %d\n", new_brk);
+      TracePrintf(1020, "Set new_brk from NULL to %d\n", new_brk);
     }
   else
     {
       if(addr > new_brk)
 	{
-	  TracePrintf(1280, "Set new_brk from %d to %d\n", new_brk, addr);
+	  TracePrintf(1020, "Set new_brk from %d to %d\n", new_brk, addr);
 	  new_brk = addr;
 	}
     }
+
  }
 TracePrintf(0, "finish set kernel brk!\n");	
 return 0;
@@ -146,7 +228,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   //initialize the physical pages array
   int numOfPagesAvailable = pmem_size/PAGESIZE;
   numPhysicalPagesLeft = numOfPagesAvailable;
-  TracePrintf(1024, "Total number of physical pages: %d, Available pages: %d\n", numOfPagesAvailable, numPhysicalPagesLeft);
+  TracePrintf(3072, "Total number of physical pages: %d, Available pages: %d\n", numOfPagesAvailable, numPhysicalPagesLeft);
 
   struct PhysicalPageNode *physicalPages[numOfPagesAvailable];
   for ( index=0; index<numOfPagesAvailable; index++)
@@ -169,11 +251,11 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
       PTE.kprot = PROT_NONE;
       KernelPageTable[index] = PTE;
     }
-  TracePrintf(1024, "PAGE_TABLE_LEN: %d, KernelPageTable Size: %d\n", PAGE_TABLE_LEN, sizeof(KernelPageTable));
+  TracePrintf(2048, "KernelPageTable: Address: %d, PAGE_TABLE_LEN: %d, KernelPageTable Size: %d\n", KernelPageTable, PAGE_TABLE_LEN, sizeof(KernelPageTable));
 
   UserPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
   for( index = 0; index < PAGE_TABLE_LEN; index++ )
-    {
+	{
       struct pte PTE;
       PTE.valid = 0;
       PTE.pfn = 0;
@@ -181,33 +263,27 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
       PTE.kprot = PROT_NONE;
       UserPageTable[index] = PTE;
     }
+  TracePrintf(2048, "UserPageTable: Address: %d, PAGE_TABLE_LEN: %d, UserPageTable Size: %d\n", UserPageTable, PAGE_TABLE_LEN, sizeof(UserPageTable));
 
-  //calculated the existing use of memory
+  InitPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+  for( index = 0; index < PAGE_TABLE_LEN; index++ )
+    {
+      struct pte PTE;
+      PTE.valid = 0;
+      PTE.pfn = 0;
+      PTE.uprot = PROT_NONE;
+      PTE.kprot = PROT_NONE;
+      InitPageTable[index] = PTE;
+    }
+  TracePrintf(2048, "InitPageTable: Address: %d, PAGE_TABLE_LEN: %d, InitPageTable Size: %d\n", InitPageTable, PAGE_TABLE_LEN, sizeof(InitPageTable));
 
-  TracePrintf(1024, "PMEM_BASE: %d, VMEM_BASE: %d, VMEM_0_BASE: %d (%d), VMEM_0_LIMIT: %d (%d), VMEM_1_BASE: %d (%d), VMEM_1_LIMIT: %d (%d)\n",
-	      PMEM_BASE, VMEM_BASE, VMEM_0_BASE, VMEM_0_BASE >> PAGESHIFT, VMEM_0_LIMIT, VMEM_0_LIMIT >> PAGESHIFT,
-	      VMEM_1_BASE, VMEM_1_BASE >> PAGESHIFT, VMEM_1_LIMIT, VMEM_1_LIMIT >> PAGESHIFT);
+  TracePrintf(2000, "KERNEL_STACK_BASE: %d (%d), KERNEL_STACK_LIMIT: %d (%d), KERNEL_STACK_PAGES: %d, KERNEL_STACK_SIZE: %d, USER_STACK_LIMIT: %d (%d)\n", KERNEL_STACK_BASE, KERNEL_STACK_BASE >> PAGESHIFT, KERNEL_STACK_LIMIT, KERNEL_STACK_LIMIT >> PAGESHIFT, KERNEL_STACK_PAGES, KERNEL_STACK_SIZE, USER_STACK_LIMIT, USER_STACK_LIMIT >> PAGESHIFT);
 
-  long etextAddr = (long)&_etext;
-  TracePrintf(1024, "&_etext: %d, &_etext >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n",
-	      &_etext, etextAddr >> PAGESHIFT, UP_TO_PAGE(etextAddr), UP_TO_PAGE(etextAddr) >> PAGESHIFT,
-	      DOWN_TO_PAGE(etextAddr), DOWN_TO_PAGE(etextAddr) >> PAGESHIFT);
-
-  TracePrintf(1024, "orig_brk: %d, orig_brk >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n",
-	      orig_brk, (long)orig_brk >> PAGESHIFT, UP_TO_PAGE(orig_brk), UP_TO_PAGE(orig_brk) >> PAGESHIFT, 
-	      DOWN_TO_PAGE(orig_brk), DOWN_TO_PAGE(orig_brk) >> PAGESHIFT);
-
-  TracePrintf(1024, "new_brk: %d, new_brk >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n",
-	      new_brk, (long)new_brk >> PAGESHIFT, UP_TO_PAGE(new_brk), UP_TO_PAGE(new_brk) >> PAGESHIFT,
-	      DOWN_TO_PAGE(new_brk), DOWN_TO_PAGE(new_brk) >> PAGESHIFT);
-
-  TracePrintf(1024, "KERNEL_STACK_BASE: %d (%d), KERNEL_STACK_LIMIT: %d (%d), KERNEL_STACK_PAGES: %d, KERNEL_STACK_SIZE: %d, USER_STACK_LIMIT: %d (%d)\n", 
-	      KERNEL_STACK_BASE, KERNEL_STACK_BASE >> PAGESHIFT, KERNEL_STACK_LIMIT, KERNEL_STACK_LIMIT >> PAGESHIFT, KERNEL_STACK_PAGES,
-	      KERNEL_STACK_SIZE, USER_STACK_LIMIT, USER_STACK_LIMIT >> PAGESHIFT);
-
-  TracePrintf(2048, "KernelPageTable: %d %d %d\n", KernelPageTable, &KernelPageTable, *&KernelPageTable);
-  TracePrintf(2048, "UserPageTable: %d %d %d\n", UserPageTable, &UserPageTable, *&UserPageTable);
+  TracePrintf(2048, "KernelPageTable: %d %d %d\n", KernelPageTable, &KernelPageTable, *KernelPageTable);
+  TracePrintf(2048, "UserPageTable: %d %d %d\n", UserPageTable, &UserPageTable, *UserPageTable);
+  TracePrintf(2048, "InitPageTable: %d %d %d\n", InitPageTable, &InitPageTable, *InitPageTable);
   //assign kernel to page Table
+  long etextAddr = (long)&_etext;
   int limit;
     
   //assign kernel text
@@ -244,9 +320,9 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
       TracePrintf(2048, "Allocate page for data: vpn(%d), pfn(%d)\n", index, PTE.pfn);
     }
 
-  printKernelPageTable(2048);
+  printKernelPageTable(2044);
 
-  //assign kernel stack
+  //assign Kernel Stack for UserPageTable
   limit = UP_TO_PAGE(KERNEL_STACK_LIMIT) >> PAGESHIFT;
   for(index = UP_TO_PAGE(KERNEL_STACK_BASE) >> PAGESHIFT; index < limit; index++)
     {
@@ -260,16 +336,17 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
       free(node);
       physicalPages[index] = NULL;
       numPhysicalPagesLeft --;
-      TracePrintf(2048, "Allocate page for stack: vpn(%d), pfn(%d)\n", index, PTE.pfn);
+      TracePrintf(2048, "Allocate page for stack in UserPageTable: vpn(%d), pfn(%d)\n", index, PTE.pfn);
     }
 
-  printUserPageTable(2048);
+  printUserPageTable(2044);
+
 	
   //use a linked list to store the available physica pages
   //physicalPageNodeHead = 0;
   //physicalPageNodeCurrent = 0;
 	 
-  TracePrintf(1024, "Number of physical pages available after allocate to Kernel: %d\n", numPhysicalPagesLeft);
+  TracePrintf(3070, "Number of physical pages available after allocate to Kernel: %d\n", numPhysicalPagesLeft);
   numPhysicalPagesLeft = 0;
   for(index = 0; index < numOfPagesAvailable; index++)
     {
@@ -278,6 +355,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	  if(physicalPageNodeHead == NULL)
 	    {
 	      physicalPageNodeHead = physicalPages[index];
+
 	      physicalPageNodeTail = physicalPageNodeHead;
 	    }
 	  else
@@ -301,19 +379,47 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   //Write the page table address to the register and enable virtual memory
   RCS421RegVal kernelPageTableAddress = (RCS421RegVal)KernelPageTable;
   WriteRegister(REG_PTR1, kernelPageTableAddress);
-  RCS421RegVal userPageTableAddress = (RCS421RegVal)UserPageTable;
-  WriteRegister(REG_PTR0, userPageTableAddress);
+  RCS421RegVal UserPageTableAddress = (RCS421RegVal)UserPageTable;
+  WriteRegister(REG_PTR0, UserPageTableAddress);
   WriteRegister(REG_VM_ENABLE, 1);
   vm_enabled = 1;
 
   //Running the idle process
   TracePrintf(512, "ExceptionStackFrame: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", frame->vector, frame->code, frame->addr, frame->psr, frame->pc, frame->sp, frame->regs);
   
-  LoadProgram("idle", cmd_args, frame);
   /* build idle and init */
+  idle = (struct PCBNode *)malloc(sizeof(struct PCBNode));
+  idle -> PID = 0;
+  idle -> ctxp = malloc(sizeof(SavedContext));//remember to free this thing when we want to exit
+  idle -> pageTable = UserPageTable;
+  idle -> status = READY;
+  idle -> isActive = 1;
+  idle -> blockedReason = 0;
+  idle -> numTicksRemainForDelay = 0;
+  idle -> parent = NULL;
+  idle -> child = NULL;
+  idle -> prevSibling = NULL;
+  idle -> nextSibling = NULL;
+  LoadProgram("idle", cmd_args, frame);//need to set the stack_brk and heap_brk in LoadProgram
+  active_process = idle;
 
-  //strcut PCBNode *p1 = buildPCB(ACTIVE, UserPageTable
-	
+  struct PCBNode* current;
+  current = (struct PCBNode *)malloc(sizeof(struct PCBNode));
+  current -> ctxp = malloc(sizeof(SavedContext));
+  current -> PID = 1; 
+  current -> pageTable = InitPageTable;
+  current -> status = 1;
+  current -> blockedReason = 0;
+  current -> numTicksRemainForDelay = 0;
+  current -> parent = NULL;
+  current -> child = NULL;
+  current -> prevSibling = NULL;
+  current -> nextSibling = NULL;
+  
+  ContextSwitch(initSwitchFunc, active_process->ctxp, active_process, current);
+  LoadProgram("init", cmd_args, frame);
+  
+
   return;
 }
 

@@ -269,10 +269,8 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
     >>>>     uprot = PROT_READ | PROT_WRITE
     >>>>     pfn   = a new page of physical memory
 	*/
-	TracePrintf(1792, "USER_STACK_LIMIT: %d, USER_STACK_LIMIT >> PAGESHIFT: %d, stack_npg: %d", USER_STACK_LIMIT, USER_STACK_LIMIT >> PAGESHIFT, stack_npg);
 	for(index = (USER_STACK_LIMIT >> PAGESHIFT); index >= (USER_STACK_LIMIT >> PAGESHIFT) - stack_npg; index --)
 	{
-		TracePrintf(1792, "Allocate %d for user stack, total %d pages\n", index, stack_npg);
 		struct pte *PTE = &UserPageTable[index];
 		PTE -> valid = 1;
 		PTE -> kprot = PROT_READ | PROT_WRITE;
