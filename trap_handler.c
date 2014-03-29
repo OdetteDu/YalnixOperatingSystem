@@ -8,6 +8,12 @@
 
 static int clockCount = 0;
 
+struct PCBNode *readyQuqueHead;
+struct PCBNode *readyQueueTail;
+
+struct PCBNode *delayBlockingQueueHead;
+struct PCBNode *delayBlockingQueueTail;
+
 extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 {
   
