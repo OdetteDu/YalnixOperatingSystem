@@ -48,6 +48,10 @@ extern int nextPID()
 	return PIDGenerator++;
 }
 
+SavedContext *SwitchFunctionFromIdleToInit(SavedContext *ctxp, void *p1, void *p2)
+{
+	return &((struct PCBNode *)p2) -> ctxp; 
+}
 /*
 extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 {
@@ -266,8 +270,35 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   TracePrintf(512, "ExceptionStackFrame: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", frame->vector, frame->code, frame->addr, frame->psr, frame->pc, frame->sp, frame->regs);
   
   /* build idle and init */
-  
-  LoadProgram("idle", cmd_args, frame);
+  idle = (struct PCBNode *)malloc(sizeof(struct PCBNode));
+  idle -> PID = 0;
+  idle -> pageTable = UserPageTable;
+  idle -> status = 1;
+  idle -> blockedReason = 0;
+  idle -> numTicksRemainForDelay = 0;
+  idle -> parent = NULL;
+  idle -> children = NULL;
+  idle -> prevSibling = NULL;
+  idle -> nextSibling = NULL;
+  LoadProgram("idle", cmd_args, frame);//need to set the stack_brk and heap_brk in LoadProgram
+
+  current = (struct PCBNode *)malloc(sizeof(struct PCBNode));
+  current -> PID = 1; 
+  current -> pageTable = InitPageTable;
+  current -> status = 1;
+  current -> blockedReason = 0;
+  current -> numTicksRemainForDelay = 0;
+  current -> parent = NULL;
+  current -> children = NULL;
+  current -> prevSibling = NULL;
+  current -> nextSibling = NULL;
+
+  ContextSwitch(SwitchFunctionFromIdleToInit, &idle -> ctxp, idle, current);
+
+  if(current -> PID != 0)
+  {
+	    LoadProgram("init", cmd_args, frame);
+  }
 
   return;
 }
