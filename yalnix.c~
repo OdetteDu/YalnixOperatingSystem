@@ -349,10 +349,10 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   /* build idle and init */
 
   //strcut PCBNode *p1 = buildPCB(ACTIVE, UserPageTable
-//<<<<<<< HEAD
-//=======
+<<<<<<< HEAD
+=======
 	
-//>>>>>>> bing
+>>>>>>> bing
   return;
 }
 

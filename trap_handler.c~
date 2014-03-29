@@ -3,7 +3,11 @@
 #include "global.h"
 #include "util.h"
 #include "trap_handler.h"
+<<<<<<< HEAD
+#include <stdlib.h>
+=======
 #include <stdio.h>
+>>>>>>> bing
 static int clockCount = 0;
 
 extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)

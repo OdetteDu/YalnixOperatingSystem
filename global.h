@@ -23,6 +23,14 @@ struct PhysicalPageNode
 
 extern int numPhysicalPagesLeft;
 extern struct PhysicalPageNode *physicalPageNodeHead;
+extern struct PhysicalPageNode *physicalPageNodeTail;
+
+/* Flags for process status */
+#define READY 1
+#define BLOCKED 2
+#define ACTIVE 3
+#define TERMINATED 4
+
 
 /* Flags for process status */
 #define READY 1

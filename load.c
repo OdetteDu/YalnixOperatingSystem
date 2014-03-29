@@ -234,6 +234,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> kprot = PROT_READ | PROT_WRITE;
 		PTE -> uprot = PROT_READ | PROT_EXEC;
 		PTE -> pfn = allocatePhysicalPage();
+		
 	}
 	TracePrintf(1536, "Initialize text pages\n");
 
