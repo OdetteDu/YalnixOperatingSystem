@@ -8,6 +8,8 @@
 #include "trap_handler.h"
 #include "global.h"
 
+struct PCBNode *current;
+
 extern int KernelFork(void)
 {
 	TracePrintf(256, "Fork\n");
@@ -35,7 +37,7 @@ extern int KernelWait(int *status_ptr)
 extern int KernelGetPid(void)
 {
 	TracePrintf(256, "GetPid\n");
-	return 0;
+	return current -> PID;
 }
 
 extern int KernelBrk(void *addr, struct PCBNode *pcb)
