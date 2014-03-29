@@ -46,7 +46,7 @@ extern struct PhysicalPageNode *physicalPageNodeTail;
 struct PCBNode
 {
   int PID;
-  SavedContext* ctxp;
+  SavedContext ctxp;
 
   struct pte *pageTable;
   unsigned int stack_brk;

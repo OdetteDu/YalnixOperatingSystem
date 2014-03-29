@@ -57,7 +57,7 @@ extern int nextPID()
  * @param: p1 should be the parent process and p2 should be the child
  */
 SavedContext * initSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
-  // struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
+   struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
   struct pte *table2 = ((struct PCBNode*)p2)->pageTable;
   
   unsigned int i;
@@ -75,13 +75,15 @@ SavedContext * initSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
       void *b = new_brk;//before alloc
       SetKernelBrk(b+PAGESIZE);
       buffer[i] = new_brk;//after alloc
-      memcpy(buffer[i], (void *)(i<<PAGESHIFT), PAGESIZE);
+      memcpy(buffer[i], (struct pte *)(i<<PAGESHIFT), PAGESIZE);
     }
   }
   //swap region0 now;
   WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-  UserPageTable = table2;
-  WriteRegister(REG_PTR0, (RCS421RegVal)UserPageTable);
+  memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
+  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+  memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
+  // WriteRegister(REG_PTR0, (RCS421RegVal)UserPageTable);
   
   /* Copy back from buffer */
   for(i=0;i<PAGE_TABLE_LEN;i++){
@@ -94,14 +96,14 @@ SavedContext * initSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
     }
   }
   
-  memcpy(((struct PCBNode*)p2)->ctxp, ctxp, sizeof(SavedContext));
+  memcpy(&(((struct PCBNode*)p2)->ctxp), ctxp, sizeof(SavedContext));
   active_process = p2;
   /* Maintain the parent/children part??/ */
   ((struct PCBNode*)p1)->child = p2;
   ((struct PCBNode*)p2)->parent = p1;
   //TODO: write a process queue and put p1 in the ready queue
 
-  return ((struct PCBNode*)p2)->ctxp;
+  return &(((struct PCBNode*)p2)->ctxp);
   
 }
 
@@ -390,9 +392,8 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   /* build idle and init */
   idle = (struct PCBNode *)malloc(sizeof(struct PCBNode));
   idle -> PID = 0;
-  idle -> ctxp = malloc(sizeof(SavedContext));//remember to free this thing when we want to exit
-  idle -> pageTable = UserPageTable;
   idle -> status = READY;
+  idle -> pageTable = malloc(PAGE_TABLE_SIZE);
   idle -> isActive = 1;
   idle -> blockedReason = 0;
   idle -> numTicksRemainForDelay = 0;
@@ -405,9 +406,8 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
   struct PCBNode* current;
   current = (struct PCBNode *)malloc(sizeof(struct PCBNode));
-  current -> ctxp = malloc(sizeof(SavedContext));
   current -> PID = 1; 
-  current -> pageTable = InitPageTable;
+  current -> pageTable = malloc(PAGE_TABLE_SIZE);
   current -> status = 1;
   current -> blockedReason = 0;
   current -> numTicksRemainForDelay = 0;
@@ -416,7 +416,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   current -> prevSibling = NULL;
   current -> nextSibling = NULL;
   
-  ContextSwitch(initSwitchFunc, active_process->ctxp, active_process, current);
+  ContextSwitch(initSwitchFunc, &(active_process->ctxp), active_process, current);
   LoadProgram("init", cmd_args, frame);
   
 
