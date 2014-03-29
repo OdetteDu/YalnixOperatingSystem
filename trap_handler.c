@@ -34,7 +34,7 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	      exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 	      exceptionStackFrame->regs);
   
-<<<<<<< HEAD
+/*<<<<<<< HEAD
   if(clockCount == 0)
   {
 	    clockCount = 1;
@@ -44,7 +44,7 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
   {
 	    clockCount = 0;
 		//Context Switch
-=======
+=======*/
   if(active_process->PID == 0)
   {
 	    clockCount = 1;
@@ -58,7 +58,7 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	 ContextSwitch(initSwitchFunc, &(active_process->ctxp), active_process, idle);
 	 TracePrintf(510, "Trap_clock: switch from init to idle\n");
 	    
->>>>>>> bing
+//>>>>>>> bing
   }
  
 }
