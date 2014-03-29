@@ -63,6 +63,10 @@ struct PCBNode
   struct PCBNode *child;
 };
 
+extern struct PCBNode* active_process;
+extern struct PCBNode* idle;
+extern struct PCBNode* init;
+
 extern int nextPID();
 
 extern struct PCBNode *readyQuqueHead;
@@ -95,5 +99,9 @@ extern void addToQueueAtTail(struct PCBNode *head, struct PCBNode *tail, struct 
 extern struct PCBNode *removeFirstFromQueue(struct PCBNode *head, struct PCBNode *tail);
 extern struct PCBNode *removeLastFromQueue(struct PCBNode *head, struct PCBNode *tail);
 
+
+/* Switch util */
+
+extern SavedContext *initSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 #endif /* end _global_h */
 
