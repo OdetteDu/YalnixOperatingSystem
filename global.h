@@ -53,15 +53,29 @@ struct PCBNode
   unsigned int heap_brk;
 
   int status;
+//<<<<<<< HEAD
+//=======
+  int isActive;
+//>>>>>>> bing
   int blockedReason;
   int numTicksRemainForDelay; 
 
   struct PCBNode *parent;
   struct PCBNode *prevSibling;
   struct PCBNode *nextSibling;
-  struct PCBNode *children;
+//<<<<<<< HEAD
+//  struct PCBNode *children;
+//};
+
+//=======
+  struct PCBNode *child;
 };
 
+extern struct PCBNode* active_process;
+extern struct PCBNode* idle;
+extern struct PCBNode* init;
+
+//>>>>>>> bing
 extern int nextPID();
 
 extern struct PCBNode *readyQuqueHead;
@@ -84,6 +98,7 @@ extern int allocatePhysicalPage();
 extern void freePhysicalPage(int pfn);
 
 /* PCBNode functions */
+//extern PCBNode *initPCBNode(struct pte *pageTable, int status);
 //extern PCBNode* buildPCB(struct pte *pageTable, int status);
 //extern void addFirstToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp);
 //extern void addLastToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp);
@@ -92,6 +107,13 @@ extern void addToQueueAtHead(struct PCBNode *head, struct PCBNode *tail, struct 
 extern void addToQueueAtTail(struct PCBNode *head, struct PCBNode *tail, struct PCBNode *toBeAdded);
 extern struct PCBNode *removeFirstFromQueue(struct PCBNode *head, struct PCBNode *tail);
 extern struct PCBNode *removeLastFromQueue(struct PCBNode *head, struct PCBNode *tail);
+//<<<<<<< HEAD
+//=======
 
+
+/* Switch util */
+//>>>>>>> bing
+
+extern SavedContext *initSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 #endif /* end _global_h */
 

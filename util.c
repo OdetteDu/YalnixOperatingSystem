@@ -56,12 +56,9 @@ extern void freePhysicalPage(int pfn)
 /* Scheduling util */
 //Insert and remove from ready queue
 /*
-extern PCBNode *buildPCB(struct pte *pageTable, int status){
+extern PCBNode* initPCBNode(struct pte *pageTable, int status){
   PCBNode* pcb;
   pcb = (PCBNode *) malloc(sizeof(PCBNode));
-  pcb->PID = nextPID();
-  pcb->status = status;
-  pcb->pageTable = pageTable;
   return pcb;
 }
 */

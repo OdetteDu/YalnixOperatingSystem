@@ -7,6 +7,9 @@
 #include <stdio.h>
 
 static int clockCount = 0;
+struct PCBNode* init;
+struct PCBNode* idle;
+struct PCBNode* active_process;
 
 extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 {
@@ -31,6 +34,7 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	      exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 	      exceptionStackFrame->regs);
   
+<<<<<<< HEAD
   if(clockCount == 0)
   {
 	    clockCount = 1;
@@ -40,6 +44,21 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
   {
 	    clockCount = 0;
 		//Context Switch
+=======
+  if(active_process->PID == 0)
+  {
+	    clockCount = 1;
+	    //	//TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
+	    ContextSwitch(initSwitchFunc, &(active_process->ctxp), active_process,init); 
+	TracePrintf(510, "Trap_clock: switch from idle to init\n");
+  }
+  else
+  {
+	 clockCount = 0;
+	 ContextSwitch(initSwitchFunc, &(active_process->ctxp), active_process, idle);
+	 TracePrintf(510, "Trap_clock: switch from init to idle\n");
+	    
+>>>>>>> bing
   }
  
 }
@@ -55,25 +74,26 @@ extern void trapIllegal(ExceptionStackFrame *exceptionStackFrame)
   char* msg = string;
   
   if (code == ILL_BADSTK)
-    msg = "Bad stack";
+    msg = "Bad stack\n";
   else if (code == ILL_ILLOPC || code == ILL_ILLOPN || code == ILL_ILLADR)
-    msg = "Illegal instruction";
+    msg = "Illegal instruction\n";
   else if (code == ILL_PRVOPC || code == ILL_PRVREG)
-    msg = "Privileged instruction";
+    msg = "Privileged instruction\n";
   else if (code == ILL_COPROC)
-    msg = "Coprocessor error";
+    msg = "Coprocessor error\n";
   else if (code == ILL_ILLTRP)
-    msg = "Illegal software trap";
+    msg = "Illegal software trap\n";
   else if (code == BUS_ADRALN + 20)
     printf(msg, "Invalid address alignment %p", exceptionStackFrame->addr);
   else if (code == SI_KERNEL)
-    msg = "Linux kernel SIGILL";
+    msg = "Linux kernel SIGILL\n";
   else if (code == SI_USER)
-    msg = "Received SIGILL from user";
+    msg = "Received SIGILL from user\n";
   else
     printf(msg, "Unknown code 0x%x", code);
   
   //KernelExit(ERROR);
+  printf(msg);
 }
 
 extern void trapMemory(ExceptionStackFrame *exceptionStackFrame)
