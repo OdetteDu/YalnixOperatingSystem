@@ -32,18 +32,13 @@ struct pte *KernelPageTable;
 struct pte *UserPageTable;
 struct pte *InitPageTable;
 
-//Current process
-<<<<<<< HEAD
-unsigned int currentPID;
-SavedContext currentSavedContext;
 //physical pages
-int numPhysicalPagesLeft;
 struct PhysicalPageNode *physicalPageNodeHead;
 struct PhysicalPageNode *physicalPageNodeTail;
-=======
+
+//Current process
 struct PCBNode *idle;
 struct PCBNode *current;
->>>>>>> cf37c31795732ca1ac97ba40f0e1e8ba63d8bd8a
 
 struct PCBNode *readyQuqueHead;
 struct PCBNode *readyQueueTail;
@@ -57,6 +52,7 @@ extern int nextPID()
 	return PIDGenerator++;
 }
 
+/*
 SavedContext *SwitchFunctionFromIdleToInit(SavedContext *ctxp, void *p1, void *p2)
 {
   //assign Kernel Stack for InitPageTable
@@ -77,6 +73,8 @@ SavedContext *SwitchFunctionFromIdleToInit(SavedContext *ctxp, void *p1, void *p
   WriteRegister(REG_PTR0, initPageTableAddress);
   return &((struct PCBNode *)p2) -> ctxp; 
 }
+*/
+
 /*
 extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 {
@@ -95,7 +93,6 @@ extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 
 extern int SetKernelBrk(void *addr)
 {
-<<<<<<< HEAD
   TracePrintf(512, "Set Kernel Brk Called: addr >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n", (long)addr >> PAGESHIFT, UP_TO_PAGE(addr), UP_TO_PAGE(addr) >> PAGESHIFT, DOWN_TO_PAGE(addr), DOWN_TO_PAGE(addr) >> PAGESHIFT);
 //<<<<<<< HEAD
 //=======
@@ -239,6 +236,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   TracePrintf(2048, "UserPageTable: %d %d %d\n", UserPageTable, &UserPageTable, *UserPageTable);
   TracePrintf(2048, "InitPageTable: %d %d %d\n", InitPageTable, &InitPageTable, *InitPageTable);
   //assign kernel to page Table
+  long etextAddr = (long)&_etext;
   int limit;
     
   //assign kernel text

@@ -7,3 +7,5 @@ TTYLOG
 DISK
 TRACE
 output.txt
+cscope.*
+tags

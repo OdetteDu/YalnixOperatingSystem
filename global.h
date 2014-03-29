@@ -67,15 +67,31 @@ extern int nextPID();
 extern struct PCBNode *readyQuqueHead;
 extern struct PCBNode *readyQueueTail;
 
+extern struct PCBNode *delayBlockingQueueHead;
+extern struct PCBNode *delayBlockingQueueTail;
+
+extern struct PCBNode *waitBlockingQueueHead;
+extern struct PCBNode *waitBlockingQueueTail;
+
+extern struct PCBNode *ttyReadBlockingQueueHead;
+extern struct PCBNode *ttyReadBlockingQueueTail;
+
+extern struct PCBNode *ttyWriteBlockingQueueHead;
+extern struct PCBNode *ttyWriteBlockingQuqueTail;
+
 /* Physical page node functions */
 extern int allocatePhysicalPage();
 extern void freePhysicalPage(int pfn);
 
 /* PCBNode functions */
 //extern PCBNode* buildPCB(struct pte *pageTable, int status);
-extern void addFirstToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp);
-extern void addLastToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp);
-extern struct PCBNode *removeFirstFromReadyQueue();
+//extern void addFirstToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp);
+//extern void addLastToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp);
+//extern struct PCBNode *removeFirstFromReadyQueue();
+extern void addToQueueAtHead(struct PCBNode *head, struct PCBNode *tail, struct PCBNode *toBeAdded);
+extern void addToQueueAtTail(struct PCBNode *head, struct PCBNode *tail, struct PCBNode *toBeAdded);
+extern struct PCBNode *removeFirstFromQueue(struct PCBNode *head, struct PCBNode *tail);
+extern struct PCBNode *removeLastFromQueue(struct PCBNode *head, struct PCBNode *tail);
 
 #endif /* end _global_h */
 
