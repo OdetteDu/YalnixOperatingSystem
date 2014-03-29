@@ -236,7 +236,7 @@ extern int SetKernelBrk(void *addr)
     }
 
  }
-TracePrintf(0, "finish set kernel brk!\n");	
+TracePrintf(1020, "finish set kernel brk!\n");	
 return 0;
 //>>>>>>> bing
 }

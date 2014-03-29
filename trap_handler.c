@@ -44,7 +44,9 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
   {
 	    clockCount = 0;
 		//Context Switch
-=======*/
+=======*
+*/
+  /*
   if(active_process->PID == 0)
   {
 	    clockCount = 1;
@@ -60,6 +62,7 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	    
 //>>>>>>> bing
   }
+  */
  
 }
 

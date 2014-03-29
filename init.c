@@ -2,9 +2,10 @@
 #include <comp421/yalnix.h>
 #include <comp421/hardware.h>
 
-int
-main()
+int main()
 {
-	while(1){
+	while(1)
+	{
+		TracePrintf(0, "Init\n");
 	}
 }
