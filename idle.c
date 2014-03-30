@@ -8,5 +8,6 @@ int main(int argc, char **argv)
 	{	
 		printf("I'm in idle now!\n");
 		Pause();
+		//Exit(99);
 	}
 }

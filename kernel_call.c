@@ -26,7 +26,7 @@ extern int KernelFork(void)
 	newproc = (struct PCBNode *)malloc(sizeof(struct PCBNode));
 	newproc -> PID = nextPID(); 
 	//will need to change this thing later
-	newproc -> pageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+	newproc -> pageTable =allocatePhysicalPage()<<PAGESHIFT; //malloc(PAGE_TABLE_LEN * sizeof(struct pte));
 	newproc -> status = READY;
 	newproc -> blockedReason = 0;
 	newproc -> numTicksRemainForDelay = 0;

@@ -234,7 +234,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> pfn = allocatePhysicalPage();
 		
 	}
-	TracePrintf(1536, "Initialize text pages\n");
+	TracePrintf(1536, "[LoadProgram] Initialize text pages\n");
 
     /* Then the data and bss pages */
 	/*
@@ -254,7 +254,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> uprot = PROT_READ | PROT_WRITE;
 		PTE -> pfn = allocatePhysicalPage();
 	}
-	TracePrintf(1536, "Initialize data and bss pages\n");
+	TracePrintf(1536, "[LoadProgram] Initialize data and bss pages\n");
 
     /* And finally the user stack pages */
 	/*
@@ -269,6 +269,7 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 	*/
 	for(index = (USER_STACK_LIMIT >> PAGESHIFT); index >= (USER_STACK_LIMIT >> PAGESHIFT) - stack_npg; index --)
 	{
+		TracePrintf(1536, "[LoadProgram] Setting up User stack page: %d\n", index);
 		struct pte *PTE = &UserPageTable[index];
 		PTE -> valid = 1;
 		PTE -> kprot = PROT_READ | PROT_WRITE;

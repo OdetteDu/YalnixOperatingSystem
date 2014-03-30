@@ -63,6 +63,7 @@ extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
   if(p2==0){p2 = idle;}
   memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
   WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+  freePhysicalPage(((struct PCBNode*)p1)->pageTable);
   free(((struct PCBNode*)p1));
   ((struct PCBNode*)p2)->status = ACTIVE;
   active_process = ((struct PCBNode*)p2);
@@ -282,6 +283,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
       physicalPages[index] = newNode;
     }
 	
+  //allocate kernelpagetable
   KernelPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
   //initialize the page Table
   for( index = 0; index < PAGE_TABLE_LEN; index++ )
@@ -295,6 +297,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
     }
   TracePrintf(2048, "KernelPageTable: Address: %d, PAGE_TABLE_LEN: %d, KernelPageTable Size: %d\n", KernelPageTable, PAGE_TABLE_LEN, sizeof(KernelPageTable));
 
+  //allocate userpagetable
   UserPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
   for( index = 0; index < PAGE_TABLE_LEN; index++ )
     {
@@ -307,6 +310,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
     }
   TracePrintf(2048, "UserPageTable: Address: %d, PAGE_TABLE_LEN: %d, UserPageTable Size: %d\n", UserPageTable, PAGE_TABLE_LEN, sizeof(UserPageTable));
 
+  //allocate initpage table
   InitPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
   IdlePageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
   for( index = 0; index < PAGE_TABLE_LEN; index++ )
@@ -429,7 +433,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
   //Running the idle process
   TracePrintf(512, "ExceptionStackFrame: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", frame->vector, frame->code, frame->addr, frame->psr, frame->pc, frame->sp, frame->regs);
-  if(count == 0){
+  // if(count == 0){
     /* build idle and init */
     idle = (struct PCBNode *)malloc(sizeof(struct PCBNode));
     idle -> PID = 0;
@@ -458,13 +462,16 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
     current -> nextSibling = NULL;
     init = current;
   
-    ContextSwitch(forkSwitchFunc, &(idle->ctxp), idle, init);
+    // ContextSwitch(forkSwitchFunc, &(idle->ctxp), idle, init);
     TracePrintf(512, "[Debug] Context switched from idle to init");
     // LoadProgram("trapmath.c", cmd_args, frame);
     //LoadProgram("forktest0", cmd_args, frame);
-    LoadProgram("init", cmd_args, frame);
-    count = 1;
-  }
+    if(count == 0){
+      // LoadProgram("init", cmd_args, frame);
+    count =1;
+    }
+    //count = 1;
+    //}
   
   return;
 }

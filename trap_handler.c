@@ -27,6 +27,8 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
     break;
   case YALNIX_EXEC:
     KernelExec((char *)exceptionStackFrame->regs[1], (char **)exceptionStackFrame->regs[2], exceptionStackFrame);
+  case YALNIX_EXIT:
+    KernelExit((int)exceptionStackFrame->regs[1]);
     break;
   default:
     break;
@@ -38,6 +40,7 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 
 extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 {
+  /*
   TracePrintf(512, "trapClock: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", 
 	      exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 	      exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
@@ -60,7 +63,7 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
     clockCount = 0;
   }else{
     clockCount ++;
-  }
+  }*/
  
 }
 
