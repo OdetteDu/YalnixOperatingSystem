@@ -205,18 +205,18 @@ extern int KernelBrk(void *addr)
 		//Exit the program.
 	}
 
-	if(addr > DOWN_TO_PAGE(pcb -> stack_brk) - PAGESIZE)
+	if(addr > DOWN_TO_PAGE(active_process -> stack_brk) - PAGESIZE)
 	{
 		TracePrintf(0, "Error in KernelBrk: Trying to set the brk inside or above the red zone.\n");
 	}
 
 	unsigned int userTablePTE;
 	//Only allocate for entire pages??
-	unsigned int gap = (UP_TO_PAGE(addr)-UP_TO_PAGE(pcb -> heap_brk));
+	unsigned int gap = (UP_TO_PAGE(addr)-UP_TO_PAGE(active_process -> heap_brk));
 	if(gap>0)
 	{
 		TracePrintf(250, "Moving user brk up to address: %d (%d)\n", addr, (long)addr >> PAGESHIFT);
-		for (userTablePTE = (UP_TO_PAGE(pcb -> heap_brk)); userTablePTE < (UP_TO_PAGE(addr)); userTablePTE += PAGESIZE)
+		for (userTablePTE = (UP_TO_PAGE(active_process -> heap_brk)); userTablePTE < (UP_TO_PAGE(addr)); userTablePTE += PAGESIZE)
 		{
 			unsigned int i = ((userTablePTE) >> PAGESHIFT) % PAGE_TABLE_LEN;
 			UserPageTable[i].valid = 1;
@@ -224,13 +224,13 @@ extern int KernelBrk(void *addr)
 			UserPageTable[i].kprot = PROT_READ | PROT_WRITE;
 			/* Need to change the pfn here */
 			UserPageTable[i].pfn = allocatePhysicalPage();
-			TracePrintf(250, "Allocate physical pages for user process: PID(%d), VPN(%d), PFN(%d).\n", pcb -> PID, i, UserPageTable[i].pfn);
+			TracePrintf(250, "Allocate physical pages for user process: PID(%d), VPN(%d), PFN(%d).\n", active_process -> PID, i, UserPageTable[i].pfn);
 		}
 	}
 	else if (gap<0)
 	{
 		TracePrintf(250, "Moving user brk down to address: %d (%d)\n", addr, (long)addr >> PAGESHIFT);
-		for ( userTablePTE = (UP_TO_PAGE(addr)); userTablePTE < (UP_TO_PAGE(pcb -> heap_brk)); userTablePTE += PAGESIZE)
+		for ( userTablePTE = (UP_TO_PAGE(addr)); userTablePTE < (UP_TO_PAGE(active_process -> heap_brk)); userTablePTE += PAGESIZE)
 		{
 			unsigned int i =((userTablePTE) >> PAGESHIFT) % PAGE_TABLE_LEN;
 			UserPageTable[i].valid = 0;
@@ -238,7 +238,7 @@ extern int KernelBrk(void *addr)
 		}
 	}
 
-	pcb -> heap_brk = addr;
+	active_process -> heap_brk = addr;
 	return 0;
 	return 0;
 }

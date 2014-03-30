@@ -123,21 +123,21 @@ extern void trapMemory(ExceptionStackFrame *exceptionStackFrame)
 			exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 			exceptionStackFrame->regs);
 
-	if( exceptionStackFrame -> addr > current -> stack_brk )
+	if( exceptionStackFrame -> addr > active_process -> stack_brk )
 	{
-		TracePrintf(0, "Trap Memory Error: addr: %d is large than stack_brk: %d\n", exceptionStackFrame -> addr, current -> stack_brk);
+		TracePrintf(0, "Trap Memory Error: addr: %d is large than stack_brk: %d\n", exceptionStackFrame -> addr, active_process -> stack_brk);
 		//Exit;
 	}
 
-	if( exceptionStackFrame -> addr < UP_TO_PAGE(current -> heap_brk) + PAGESIZE )
+	if( exceptionStackFrame -> addr < UP_TO_PAGE( active_process -> heap_brk) + PAGESIZE )
 	{
-		TracePrintf(0, "Trap Memory Error: addr: %d is smaller than heap_brk: %d\n", exceptionStackFrame -> addr, current -> heap_brk);
+		TracePrintf(0, "Trap Memory Error: addr: %d is smaller than heap_brk: %d\n", exceptionStackFrame -> addr, active_process -> heap_brk);
 		//Exit;
 	}
 
 	long userTablePTE;
 	TracePrintf(510, "Moving user stack down to address: %d (%d)\n", exceptionStackFrame -> addr, (long)exceptionStackFrame -> addr >> PAGESHIFT);
-	for (userTablePTE = (DOWN_TO_PAGE(exceptionStackFrame -> addr)); userTablePTE < (DOWN_TO_PAGE(current -> stack_brk)); userTablePTE += PAGESIZE)
+	for (userTablePTE = (DOWN_TO_PAGE(exceptionStackFrame -> addr)); userTablePTE < (DOWN_TO_PAGE(active_process -> stack_brk)); userTablePTE += PAGESIZE)
 	{
 		unsigned int i = ((userTablePTE) >> PAGESHIFT) % PAGE_TABLE_LEN;
 		UserPageTable[i].valid = 1;
@@ -145,7 +145,7 @@ extern void trapMemory(ExceptionStackFrame *exceptionStackFrame)
 		UserPageTable[i].kprot = PROT_READ | PROT_WRITE;
 		/* Need to change the pfn here */
 		UserPageTable[i].pfn = allocatePhysicalPage();
-		TracePrintf(250, "Allocate physical pages for user process: PID(%d), VPN(%d), PFN(%d).\n", current -> PID, i, UserPageTable[i].pfn);
+		TracePrintf(250, "Allocate physical pages for user process: PID(%d), VPN(%d), PFN(%d).\n", active_process -> PID, i, UserPageTable[i].pfn);
 	}
 
 }
