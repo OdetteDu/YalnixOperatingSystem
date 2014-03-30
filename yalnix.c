@@ -41,9 +41,9 @@ struct PhysicalPageNode *physicalPageNodeHead;
 struct PhysicalPageNode *physicalPageNodeTail;
 
 //Current process
-struct PCBNode *idle;
-struct PCBNode *active_process;
-struct PCBNode *init;
+extern struct PCBNode *idle;
+extern struct PCBNode *active_process;
+extern struct PCBNode *init;
 
 //Process Queue
 
@@ -56,28 +56,52 @@ extern int nextPID()
   return PIDGenerator++;
 }
 
-struct pte* buildNewUserTable(){
-  TracePrintf(512, "Building new user page table");
+
+extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
+  TracePrintf(0, "[Exit Switch] Entrance \n");
+  struct pte* table2 = ((struct PCBNode*)p2)->pageTable;
+  if(p2==0){p2 = idle;}
+  memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
+  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+  free(((struct PCBNode*)p1));
+  ((struct PCBNode*)p2)->status = ACTIVE;
+  active_process = ((struct PCBNode*)p2);
+  return  &(((struct PCBNode*)p2)->ctxp);
   
 }
 
 extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
   struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
   struct pte *table2 = ((struct PCBNode*)p2)->pageTable;
-  TracePrintf(256, "[Debug] Entered general context switch function");
+  TracePrintf(256, "[General Switch] Entrance\n");
   //check if p2 is null
-  if(!p2) return ctxp;
+  if(!p2){
+    return &(((struct PCBNode*)p1)->ctxp);
+  }
+  printUserPageTable(2000);
   WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
   memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
   WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
   memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
+  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+  printUserPageTable(2000);
+  ((struct PCBNode*)p2)->status = ACTIVE;
   active_process = p2;
   memcpy(&(((struct PCBNode*)p2)->ctxp), ctxp, sizeof(SavedContext));
   //TODO: put p1 in ready queue
+  struct queue* pcb1;//should check for if p1 is idle here ..
+  pcb1->proc = ((struct PCBNode*)p1);
+  pcb1->next = NULL;
+  if(readyQHead == NULL){
+    readyQHead = pcb1;
+    readyQTail = pcb1;
+  }else{
+    readyQTail->next = pcb1;
+    readyQTail = pcb1;
+  }
+
   printf("Switched from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
   return &(((struct PCBNode*)p2)->ctxp);
-  
-  
 }
 /**
  * @param: p1 should be the parent process and p2 should be the child
@@ -132,54 +156,35 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
   printUserPageTable(1024);
 
   memcpy(&(((struct PCBNode*)p2)->ctxp), ctxp, sizeof(SavedContext));
+  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
   active_process = p2;
   /* Maintain the parent/children part??/ */
+  struct queue* child = {p2, 0};
+  if(((struct PCBNode*)p1)->children == 0){
+    ((struct PCBNode*)p1)->children = child; 
+  }else{
+    (((struct PCBNode*)p1)->children)->next = child; //put in child list
+  }
   //((struct PCBNode*)p1)->child = p2;
-  // ((struct PCBNode*)p2)->parent = p1;
+  ((struct PCBNode*)p2)->parent = ((struct PCBNode*)p1);
   //TODO: write a process queue and put p1 in the ready queue
+    //TODO: put p1 in ready queue
+  struct queue* pcb1;//should check for if p1 is idle here ..
+  pcb1->proc = ((struct PCBNode*)p1);
+  pcb1->next = NULL;
+  if(readyQHead == 0){
+    readyQHead = pcb1;
+    readyQTail = pcb1;
+  }else{
+    readyQTail->next = pcb1;
+    readyQTail = pcb1;
+  }
+  
   printf("Switched from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
   return &(((struct PCBNode*)p2)->ctxp);
   
 }
 
-/*
-  SavedContext *SwitchFunctionFromIdleToInit(SavedContext *ctxp, void *p1, void *p2)
-  {
-  //assign Kernel Stack for InitPageTable
-  for(index = UP_TO_PAGE(KERNEL_STACK_BASE) >> PAGESHIFT; index < limit; index++)
-  {
-  struct pte PTE;
-  PTE.valid = 1;
-  PTE.pfn = allocatePhysicalPage();
-  PTE.uprot = PROT_NONE;
-  PTE.kprot = PROT_READ | PROT_WRITE;
-  InitPageTable[index] = PTE;
-  TracePrintf(1400, "Allocate page for stack in InitPageTable: vpn(%d), pfn(%d)\n", index, PTE.pfn);
-  }
-  //memcpy(dest, src, size of dest);
-  memcpy(dest, src, KERNEL_STACK_SIZE);
-
-  RCS421RegVal initPageTableAddress = (RCS421RegVal)InitPageTable;
-  WriteRegister(REG_PTR0, initPageTableAddress);
-  return &((struct PCBNode *)p2) -> ctxp; 
-  }
-*/
-
-/*
-  extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2)
-  {
- 
-  ((struct PCBNode *)p1) -> PID = currentPID;
-  ((struct PCBNode *)p1) -> pageTable = UserPageTable;
-  ((struct PCBNode *)p1) -> ctxp = currentSavedContext;
-  currentPID = ((struct PCBNode *)p2) -> PID;
-  UserPageTable = ((struct PCBNode *)p2) -> pageTable;
-  currentSavedContext = ((struct PCBNode *)p2) -> ctxp;
-  RCS421RegVal userPageTableAddress = (RCS421RegVal)UserPageTable;
-  WriteRegister(REG_PTR0, userPageTableAddress);
-  return &currentSavedContext; 
-  }
-*/
 
 extern int SetKernelBrk(void *addr)
 {
@@ -453,11 +458,11 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
     current -> nextSibling = NULL;
     init = current;
   
-    ContextSwitch(forkSwitchFunc, &(active_process->ctxp), active_process, current);
+    ContextSwitch(forkSwitchFunc, &(idle->ctxp), idle, init);
     TracePrintf(512, "[Debug] Context switched from idle to init");
     // LoadProgram("trapmath.c", cmd_args, frame);
-    LoadProgram("forktest0", cmd_args, frame);
-    //LoadProgram("init", cmd_args, frame);
+    //LoadProgram("forktest0", cmd_args, frame);
+    LoadProgram("init", cmd_args, frame);
     count = 1;
   }
   

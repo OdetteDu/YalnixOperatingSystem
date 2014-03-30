@@ -32,13 +32,6 @@ extern struct PhysicalPageNode *physicalPageNodeTail;
 #define ACTIVE 3
 #define TERMINATED 4
 
-
-/* Flags for process status */
-#define READY 1
-#define BLOCKED 2
-#define ACTIVE 3
-#define TERMINATED 4
-
 #define Delay 1
 #define Wait 2
 #define TTYRead 3
@@ -63,12 +56,26 @@ struct PCBNode
   struct PCBNode *prevSibling;
   struct PCBNode *nextSibling;
   struct PCBNode *child;
+	struct queue* children;
 };
 
-extern struct PCBNode* active_process;
-extern struct PCBNode* idle;
-extern struct PCBNode* init;
+struct PCBNode* active_process;
+struct PCBNode* idle;
+struct PCBNode* init;
 
+/* Process queue */
+struct queue{
+	struct PCBNode* proc;
+	struct queue* next;
+};
+
+extern struct queue *waitingQHead, *waitingQTail;
+extern struct queue *readyQHead, *readyQTail;
+
+extern void addToQEnd(struct queue* topush, struct queue* qTail);
+extern struct PCBNode* popQHead(struct queue* qHead);
+
+//extern queue *readyQueueHead, readyQueueTail
 
 /* Physical page node functions */
 extern int allocatePhysicalPage();
@@ -82,16 +89,9 @@ extern void freePhysicalPage(int pfn);
 
 extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
+extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 #endif /* end _global_h */
 
 
-/* Process queue */
-struct queue{
-	struct PCBNode* proc;
-	struct queue* next;
-};
-
-extern void addToQEnd(struct queue* topush, struct queue* qTail);
-extern struct PCBNode* popQHead(struct queue* qHead);
 
 //extern queue *readyQueueHead, readyQueueTail

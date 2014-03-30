@@ -7,9 +7,13 @@
 #include <comp421/hardware.h>
 #include "trap_handler.h"
 #include "global.h"
+#include <stdio.h>
 
 /* Var */
 struct PCBNode* active_process;
+struct queue* waitingQHead, *waitingQTail;
+struct queue* readyQHead, *readyQTail;
+extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
 extern int KernelFork(void)
 {
 	TracePrintf(256, "Fork\n");
@@ -66,6 +70,77 @@ extern int KernelExec(char *filename, char **argvec, ExceptionStackFrame *frame)
 extern int KernelExit(int status)
 {
 	TracePrintf(256, "Exit: status(%d)\n", status);
+	//	struct PCBNode* parent;
+	unsigned int i;
+	
+	/* Should first free everything in region0*/
+	for(i=0; i<PAGE_TABLE_LEN- KERNEL_STACK_PAGES; i++){
+	  if(UserPageTable[i].valid == 1){
+	    UserPageTable[i].kprot |= PROT_WRITE;
+	  }
+	}
+
+	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
+	for(i=0; i<PAGE_TABLE_LEN; i++){
+	  if(UserPageTable[i].valid == 1){
+	    freePhysicalPage(UserPageTable[i].pfn);
+	    UserPageTable[i].valid = 0;
+	  }
+	}
+	active_process->status = TERMINATED;
+	TracePrintf(0, "[Exit] freed region 0\n");
+	struct queue* child = active_process->children;
+	while(child!=0){
+	  struct PCBNode* tempchild = child->proc;
+	  if(tempchild->status == TERMINATED){
+	    //reap zombie child
+	    free(tempchild);
+	  }else{
+	    tempchild->parent = 0;
+	  }
+	  child = child->next;
+	}
+	
+	TracePrintf(0, "[Exit] reaped zombie children\n");
+	if(active_process->PID == 1 || active_process->PID == 0 ){
+	  Halt();
+	}
+
+	if(active_process->parent == 0){
+	  //orphan process
+	  struct PCBNode* next;
+	  if(readyQHead == NULL){
+	    next = idle;//when no one in ready q just switch with idle
+	  }else{
+	    next = popQHead(readyQHead);
+	  }
+	  next->status = ACTIVE;
+	  ContextSwitch(exitSwitchFunc, &(active_process->ctxp), active_process, next);
+	}else{//has a parent
+	  //do something with return status
+	  //struct PCBNode* 
+	  //check the waiting queue to find parent
+	  struct queue* newWaitQ;
+	  struct queue* waitingQ = waitingQHead;
+	  while(waitingQ!=0){//go through waiting q to resume parent
+	    struct PCBNode* item = waitingQ->proc;
+	    if(active_process->parent == item){
+	      //Unblock;
+	      item->status = ACTIVE;
+	      
+	      if(newWaitQ==0){ waitingQHead = waitingQ->next;}
+	      else{ newWaitQ->next = waitingQ->next;}
+	      ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, item);
+	    }
+	  }
+	  
+	  struct PCBNode* nextReady;
+	  if(readyQHead==0){ nextReady = idle;}
+	  else{ nextReady = popQHead(readyQHead);}
+	  ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, nextReady);
+	  
+	}
+	
 	return 0;
 }
 

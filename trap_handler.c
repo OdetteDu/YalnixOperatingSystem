@@ -42,21 +42,25 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	      exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 	      exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 	      exceptionStackFrame->regs);
-  
-  if(active_process->PID == 0)
-    {
-      clockCount = 1;
-      //	//TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
-      ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process,init); 
-      TracePrintf(510, "Trap_clock: switch from idle to init\n");
-    }
-  else
-    {
-      clockCount = 0;
-      ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
-      TracePrintf(510, "Trap_clock: switch from init to idle\n");
+  if(clockCount == 5){
+    if(active_process->PID == 0)
+      {
+     
+	//	//TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
+	ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process,init); 
+	TracePrintf(510, "Trap_clock: switch from idle to init\n");
+      }
+    else if (active_process->PID == 1)
+      {
+      
+	ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
+	TracePrintf(510, "Trap_clock: switch from init to idle\n");
 	    
-    }
+      }
+    clockCount = 0;
+  }else{
+    clockCount ++;
+  }
  
 }
 
