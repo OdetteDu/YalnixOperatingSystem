@@ -12,10 +12,20 @@
 struct PhysicalPageNode* physicalPageNodeHead;
 struct pte *UserPageTable;
 struct pte *KernelPageTable;
-struct PCBNode *readyQuqueHead;
-struct PCBNode *readyQueueTail;
 
 
+/*Queue util */
+
+extern void addToQEnd(struct queue* topush, struct queue* qTail){
+	qTail->next = topush;
+	topush = qTail;
+}
+
+extern struct PCBNode* popQHead(struct queue* qHead){
+	struct queue* temp = qHead;
+	qHead = temp->next;
+	return temp->proc;
+}
 
 /* Physical page node util */
 //Allocate and free physical pages

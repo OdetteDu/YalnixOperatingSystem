@@ -6,7 +6,7 @@
 #include <comp421/hardware.h>
 
 extern int KernelFork(void);
-extern int KernelExec(char *filename, char **argvec);
+extern int KernelExec(char *filename, char **argvec, ExceptionStackFrame *frame);
 extern int KernelExit(int status);
 extern int KernelWait(int *status_ptr);
 extern int KernelGetPid(void);
