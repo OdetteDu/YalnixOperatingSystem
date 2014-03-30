@@ -12,14 +12,6 @@ struct PCBNode* init;
 struct PCBNode* idle;
 struct PCBNode* active_process;
 
-struct PCBNode *current;
-
-struct PCBNode *readyQuqueHead;
-struct PCBNode *readyQueueTail;
-
-struct PCBNode *delayBlockingQueueHead;
-struct PCBNode *delayBlockingQueueTail;
-
 extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 {
   
@@ -31,6 +23,7 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
   switch(exceptionStackFrame->code){
   case YALNIX_FORK:
     TracePrintf(0, "calling kernel Fork()");
+    exceptionStackFrame->regs[0] = KernelFork();
     break;
   case YALNIX_EXEC:
     KernelExec((char *)exceptionStackFrame->regs[1], (char **)exceptionStackFrame->regs[2], exceptionStackFrame);
@@ -102,35 +95,11 @@ extern void trapIllegal(ExceptionStackFrame *exceptionStackFrame)
 
 extern void trapMemory(ExceptionStackFrame *exceptionStackFrame)
 {
-	TracePrintf(512, "trapMemory: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n",
+  TracePrintf(512, "trapMemory: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n",
 	      exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 	      exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 	      exceptionStackFrame->regs);
-
-	if( exceptionStackFrame -> addr > current -> stack_brk )
-	{
-		 TracePrintf(0, "Trap Memory Error: addr: %d is large than stack_brk: %d\n", exceptionStackFrame -> addr, current -> stack_brk);
-		 //Exit;
-	}
-
-	if( exceptionStackFrame -> addr < UP_TO_PAGE(current -> heap_brk) + PAGESIZE )
-	{
-		 TracePrintf(0, "Trap Memory Error: addr: %d is smaller than heap_brk: %d\n", exceptionStackFrame -> addr, current -> heap_brk);
-		 //Exit;
-	}
-
-	long userTablePTE;	
-	TracePrintf(510, "Moving user stack down to address: %d (%d)\n", exceptionStackFrame -> addr, (long)exceptionStackFrame -> addr >> PAGESHIFT);
-	for (userTablePTE = (DOWN_TO_PAGE(exceptionStackFrame -> addr)); userTablePTE < (DOWN_TO_PAGE(current -> stack_brk)); userTablePTE += PAGESIZE)
-	{
-		unsigned int i = ((userTablePTE) >> PAGESHIFT) % PAGE_TABLE_LEN;
-		UserPageTable[i].valid = 1;
-		UserPageTable[i].uprot = PROT_NONE;
-		UserPageTable[i].kprot = PROT_READ | PROT_WRITE;
-		/* Need to change the pfn here */
-		UserPageTable[i].pfn = allocatePhysicalPage();
-		TracePrintf(250, "Allocate physical pages for user process: PID(%d), VPN(%d), PFN(%d).\n", current -> PID, i, UserPageTable[i].pfn);
-	}
+    
 }
 
 extern void trapMath(ExceptionStackFrame *exceptionStackFrame)

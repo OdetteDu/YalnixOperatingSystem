@@ -26,7 +26,7 @@
 #	if you have a file named test1.c in this directory.
 #
 TEST = $(patsubst %.c,%,$(wildcard test/*.c))
-ALL = yalnix idle init $(TEST)
+ALL = yalnix idle init forktest0 $(TEST)
 
 #
 #	You must modify the KERNEL_OBJS and KERNEL_SRCS definitions

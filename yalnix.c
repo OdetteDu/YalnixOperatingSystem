@@ -456,8 +456,8 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
     ContextSwitch(forkSwitchFunc, &(active_process->ctxp), active_process, current);
     TracePrintf(512, "[Debug] Context switched from idle to init");
     // LoadProgram("trapmath.c", cmd_args, frame);
-    //LoadProgram("test", cmd_args, frame);
-    LoadProgram("init", cmd_args, frame);
+    LoadProgram("forktest0", cmd_args, frame);
+    //LoadProgram("init", cmd_args, frame);
     count = 1;
   }
   
