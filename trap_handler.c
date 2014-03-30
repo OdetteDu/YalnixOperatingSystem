@@ -29,6 +29,9 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 	case YALNIX_EXEC:
 		KernelExec((char *)exceptionStackFrame->regs[1], (char **)exceptionStackFrame->regs[2], exceptionStackFrame);
 		break;
+	case YALNIX_GETPID:
+		exceptionStackFrame -> regs[0] = KernelGetPid();
+		break;
 	default:
 		break;
 	}
@@ -41,41 +44,41 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 			exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 			exceptionStackFrame->regs);
 
-	struct queue *current = delayQueueHead;
-	while(current != NULL)
-	{
-		struct PCBNode *currentPCB = current -> proc;
-		(currentPCB -> numTicksRemainForDelay) --;
-		if(currentPCB -> numTicksRemainForDelay == 0)
-		{
-			//remove that specific PCB from delayQueue
-			//addToQEnd(currentPCB, readyQueueTail);
-		}
-		current = current -> next;
-	}
-
-	if(clockCount == 5)
-	{
-		if(active_process->PID == 0)
-		{
-
-			//	//TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
-			ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process,init);
-			TracePrintf(510, "Trap_clock: switch from idle to init\n");
-		}
-		else if (active_process->PID == 1)
-		{
-
-			ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
-			TracePrintf(510, "Trap_clock: switch from init to idle\n");
-
-		}
-		clockCount = 0;
-	}
-	else
-	{
-		clockCount ++;
-	}
+//	struct queue *current = delayQueueHead;
+//	while(current != NULL)
+//	{
+//		struct PCBNode *currentPCB = current -> proc;
+//		(currentPCB -> numTicksRemainForDelay) --;
+//		if(currentPCB -> numTicksRemainForDelay == 0)
+//		{
+//			//remove that specific PCB from delayQueue
+//			//addToQEnd(currentPCB, readyQueueTail);
+//		}
+//		current = current -> next;
+//	}
+//
+//	if(clockCount == 5)
+//	{
+//		if(active_process->PID == 0)
+//		{
+//
+//			//	//TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
+//			ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process,init);
+//			TracePrintf(510, "Trap_clock: switch from idle to init\n");
+//		}
+//		else if (active_process->PID == 1)
+//		{
+//
+//			ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
+//			TracePrintf(510, "Trap_clock: switch from init to idle\n");
+//
+//		}
+//		clockCount = 0;
+//	}
+//	else
+//	{
+//		clockCount ++;
+//	}
 
 }
 

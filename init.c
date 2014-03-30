@@ -5,8 +5,9 @@
 int
 main()
 {
-	while(1){
-	 // TracePrintf(0, "*****Init****\n");
+	while(1)
+	{
+		TracePrintf(0, "*****Init****\nMy PID is: %d.\n", GetPid());
 	  //printf("I'm in init!\n");
 	}
 }

@@ -429,7 +429,6 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
   //Running the idle process
   TracePrintf(512, "ExceptionStackFrame: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", frame->vector, frame->code, frame->addr, frame->psr, frame->pc, frame->sp, frame->regs);
-  if(count == 0){
     /* build idle and init */
     idle = (struct PCBNode *)malloc(sizeof(struct PCBNode));
     idle -> PID = 0;
@@ -442,30 +441,34 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
     idle -> child = NULL;
     idle -> prevSibling = NULL;
     idle -> nextSibling = NULL;
-    LoadProgram("idle", cmd_args, frame);//need to set the stack_brk and heap_brk in LoadProgram
     active_process = idle;
 
-    struct PCBNode* current;
-    current = (struct PCBNode *)malloc(sizeof(struct PCBNode));
-    current -> PID = 1; 
-    current -> pageTable =InitPageTable;
-    current -> status = 1;
-    current -> blockedReason = 0;
-    current -> numTicksRemainForDelay = 0;
-    current -> parent = NULL;
-    current -> child = NULL;
-    current -> prevSibling = NULL;
-    current -> nextSibling = NULL;
-    init = current;
+	TracePrintf(10, "idle: PID(%d), status(%d), pageTable(%d).\n", idle -> PID, idle -> status, idle -> pageTable);
+	TracePrintf(10, "active_process: PID(%d), status(%d), pageTable(%d).\n", active_process -> PID, active_process -> status, active_process -> pageTable);
+
+    LoadProgram("init", cmd_args, frame);//need to set the stack_brk and heap_brk in LoadProgram
+//    struct PCBNode* current;
+//    current = (struct PCBNode *)malloc(sizeof(struct PCBNode));
+//    current -> PID = 1; 
+//    current -> pageTable =InitPageTable;
+//    current -> status = 1;
+//    current -> blockedReason = 0;
+//    current -> numTicksRemainForDelay = 0;
+//    current -> parent = NULL;
+//    current -> child = NULL;
+//    current -> prevSibling = NULL;
+//    current -> nextSibling = NULL;
+//    init = current;
   
-    ContextSwitch(forkSwitchFunc, &(idle->ctxp), idle, init);
-    TracePrintf(512, "[Debug] Context switched from idle to init");
-    // LoadProgram("trapmath.c", cmd_args, frame);
-    //LoadProgram("forktest0", cmd_args, frame);
-    LoadProgram("init", cmd_args, frame);
-    count = 1;
-  }
-  
+//    ContextSwitch(forkSwitchFunc, &(idle->ctxp), idle, init);
+//    TracePrintf(512, "[Debug] Context switched from idle to init");
+//  if(count == 0){
+//    // LoadProgram("trapmath.c", cmd_args, frame);
+//    //LoadProgram("forktest0", cmd_args, frame);
+//    LoadProgram("init", cmd_args, frame);
+//    count = 1;
+//  }
+//  
   return;
 }
 
