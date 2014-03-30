@@ -27,6 +27,19 @@ extern struct PCBNode* popQHead(struct queue* qHead){
 	return temp->proc;
 }
 
+extern void addToTTYQEnd(struct TTYQueue* topush, struct TTYQueue* qTail)
+{
+	qTail->next = topush;
+	topush = qTail;
+}
+
+extern struct PCBNode* popTTYQHead(struct TTYQueue* qHead)
+{
+	struct TTYQueue* temp = qHead;
+	qHead = temp->next;
+	return temp->proc;
+}
+
 /* Physical page node util */
 //Allocate and free physical pages
 extern int allocatePhysicalPage()
