@@ -156,7 +156,24 @@ extern void trapTTYReceive(ExceptionStackFrame *exceptionStackFrame)
 
 extern void trapTTYTransmit(ExceptionStackFrame *exceptionStackFrame)
 {
-  TracePrintf(512, "trapTTYTransmit: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
+	TracePrintf(512, "trapTTYTransmit: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr, exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,exceptionStackFrame->regs);
+
+	//how to put the buffer back to the buffer the process asked?
+	//addToQEnd(popTTYQHead(TTYWriteQueueHead), readyQueueTail);
+	//How to know which terminal is this?
+	/*
+	if(TTYWriteQueueHead != NULL)
+	{
+		  TtyTransmit(tty_id, TTYWriteQueueHead -> buffer, TTYWriteQueueHead -> length);
+	}
+	else
+	{
+		  isTerminalBusy[tty_id] = 0;
+		  TTYWriteQueueHead = NULL;
+		  TTYWriteQueueTail = NULL;
+	}
+	*/
+	
 }
 
 
