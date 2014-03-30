@@ -13,6 +13,9 @@
 struct PCBNode* active_process;
 int isTerminalBusy[NUM_TERMINALS];
 
+struct queue *delayQueueHead;
+struct queue *delayQueueTail;
+
 //head is also the active process who is waiting for interrupt
 struct TTYQueue *TTYWriteQueueHead; 
 struct TTYQueue *TTYWriteQueueTail;
@@ -97,6 +100,12 @@ extern int KernelBrk(void *addr)
 extern int KernelDelay(int clock_ticks)
 {
 	TracePrintf(256, "Delay: clock_ticks(%d)\n", clock_ticks);
+
+	struct queue *newQueueNode;
+	newQueueNode = malloc(sizeof(struct queue));
+	active_process -> numTicksRemainForDelay = clock_ticks;
+	newQueueNode -> proc = active_process;
+	addToQEnd(newQueueNode, delayQueueTail);
 	return 0;
 }
 

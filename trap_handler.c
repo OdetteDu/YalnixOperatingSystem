@@ -42,6 +42,19 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	      exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 	      exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 	      exceptionStackFrame->regs);
+
+  struct queue *current = delayQueueHead;
+  while(current != NULL)
+  {
+	  struct PCBNode *currentPCB = current -> proc;
+	  (currentPCB -> numTicksRemainForDelay) --;
+	  if(currentPCB -> numTicksRemainForDelay == 0)
+	  {
+		    //remove that specific PCB from delayQueue
+			//addToQEnd(currentPCB, readyQueueTail);
+	  }
+	  current = current -> next;
+  }
   
   if(active_process->PID == 0)
     {

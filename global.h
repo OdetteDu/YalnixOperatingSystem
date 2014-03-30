@@ -94,6 +94,9 @@ struct queue{
 extern void addToQEnd(struct queue* topush, struct queue* qTail);
 extern struct PCBNode* popQHead(struct queue* qHead);
 
+extern struct queue *delayQueueHead;
+extern struct queue *delayQueueTail;
+
 /* TTY Queue */
 struct TTYQueue
 {
