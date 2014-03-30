@@ -1,10 +1,8 @@
 #include <stdio.h>
 #include <comp421/yalnix.h>
-#include <comp421/hardware.h>
 
 int
-main()
+main(int argc, char **argv)
 {
-	while(1){
-	}
+    Exit(0);
 }
