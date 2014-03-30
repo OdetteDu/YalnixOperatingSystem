@@ -7,9 +7,18 @@
 #include <comp421/hardware.h>
 #include "trap_handler.h"
 #include "global.h"
+#include <stdio.h>
 
 /* Var */
 struct PCBNode* active_process;
+int isTerminalBusy[NUM_TERMINALS];
+
+struct queue *TTYWriteQueueHead; //head is also the active process who is waiting for interrupt
+struct queue *TTYWriteQueueTail;
+
+char *TTYWriteBuffer;
+char *TTYReadBuffer;
+
 extern int KernelFork(void)
 {
 	TracePrintf(256, "Fork\n");
@@ -102,6 +111,28 @@ extern int KernelTtyRead(int tty_id, void *buf, int len)
 extern int KernelTtyWrite(int tty_id, void *buf, int len)
 {
 	TracePrintf(256, "TtyWrite: tty_id(%d), buf(%s), len(%d)\n", tty_id, buf, len);
+
+	if (isTerminalBusy[tty_id] == 0)
+	{
+		  TracePrintf(200, "[KernelTtyWrite] Terminal %d is not busy, prepare to write to termianl.\n", tty_id);
+		  isTerminalBusy[tty_id] = 1;
+		  TTYWriteQueueHead = malloc(sizeof(struct queue));
+		  TTYWriteQueueHead -> proc = active_process;
+		  TTYWriteQueueHead -> next = NULL;
+		  TTYWriteQueueTail = TTYWriteQueueHead;
+		  TTYWriteBuffer = malloc(sizeof(char) * len);//not sure about pointers here
+		  TTYWriteBuffer = buf;//not sure about the copy here
+		  TtyTransmit(tty_id, TTYWriteBuffer, len);
+	}
+	else
+	{
+		  TracePrintf(200, "[KernelTtyWrite] Terminal %d is busy, put into the blocking queue.\n", tty_id);
+		  struct queue *newQueueNode = malloc(sizeof(struct queue));
+		  newQueueNode -> proc = active_process;
+		  newQueueNode -> next = NULL;
+		  //Save the buffer and length in kernel
+		  addToQEnd(newQueueNode, TTYWriteQueueTail);
+	}
 	return 0;
 }
 

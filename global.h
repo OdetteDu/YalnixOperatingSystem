@@ -95,3 +95,8 @@ extern void addToQEnd(struct queue* topush, struct queue* qTail);
 extern struct PCBNode* popQHead(struct queue* qHead);
 
 //extern queue *readyQueueHead, readyQueueTail
+extern struct queue *TTYWriteQueueHead; //head is also the active process who is waiting for interrupt
+extern struct queue *TTYWriteQueueTail;
+
+extern char *TTYWriteBuffer;
+extern char *TTYReadBuffer;
