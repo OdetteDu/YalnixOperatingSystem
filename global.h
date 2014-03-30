@@ -1,8 +1,8 @@
 #ifndef _global_h
 #define _global_h
+
 //interrupt vector table
 extern void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
-
 
 //PID Generator
 extern unsigned int PIDGenerator;
@@ -18,8 +18,8 @@ extern struct pte *UserPageTable;
 //Available Physical Pages
 struct PhysicalPageNode
 {
-  int pageNumber;
-  struct PhysicalPageNode *next;
+	int pageNumber;
+	struct PhysicalPageNode *next;
 };
 
 extern int numPhysicalPagesLeft;
@@ -40,22 +40,22 @@ extern struct PhysicalPageNode *physicalPageNodeTail;
 //PCB
 struct PCBNode
 {
-  int PID;
-  SavedContext ctxp;
+	int PID;
+	SavedContext ctxp;
 
-  struct pte *pageTable;
-  unsigned int stack_brk;
-  unsigned int heap_brk;
+	struct pte *pageTable;
+	unsigned int stack_brk;
+	unsigned int heap_brk;
 
-  int status;
-  int isActive;
-  int blockedReason;
-  int numTicksRemainForDelay; 
+	int status;
+	int isActive;
+	int blockedReason;
+	int numTicksRemainForDelay;
 
-  struct PCBNode *parent;
-  struct PCBNode *prevSibling;
-  struct PCBNode *nextSibling;
-  struct PCBNode *child;
+	struct PCBNode *parent;
+	struct PCBNode *prevSibling;
+	struct PCBNode *nextSibling;
+	struct PCBNode *child;
 	struct queue* children;
 };
 
@@ -64,34 +64,43 @@ struct PCBNode* idle;
 struct PCBNode* init;
 
 /* Process queue */
-struct queue{
+struct queue
+{
 	struct PCBNode* proc;
 	struct queue* next;
 };
 
 extern struct queue *waitingQHead, *waitingQTail;
 extern struct queue *readyQHead, *readyQTail;
+extern struct queue *delayQueueHead, *delayQueueTail;
 
+/* PCBNode functions */
 extern void addToQEnd(struct queue* topush, struct queue* qTail);
 extern struct PCBNode* popQHead(struct queue* qHead);
-
-//extern queue *readyQueueHead, readyQueueTail
 
 /* Physical page node functions */
 extern int allocatePhysicalPage();
 extern void freePhysicalPage(int pfn);
 
-
-/* PCBNode functions */
-
-
 /* Switch util */
-
 extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 #endif /* end _global_h */
 
+/* TTY Queue */
+struct TTYQueue
+{
+	struct PCBNode *proc;
+	int length;
+	char *buffer;
 
+	struct TTYQueue *next;
+};
 
-//extern queue *readyQueueHead, readyQueueTail
+extern void addToTTYQEnd(struct TTYQueue* topush, struct TTYQueue* qTail);
+extern struct PCBNode* popTTYQHead(struct TTYQueue* qHead);
+
+//head is also the active process who is waiting for interrupt
+extern struct TTYQueue *TTYWriteQueueHead;
+extern struct TTYQueue *TTYWriteQueueTail;
