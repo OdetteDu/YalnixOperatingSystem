@@ -3,8 +3,10 @@
 //interrupt vector table
 extern void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
 
+
 //PID Generator
 extern unsigned int PIDGenerator;
+extern int nextPID();
 
 //Kernel brk
 extern void *new_brk;
@@ -67,41 +69,29 @@ extern struct PCBNode* active_process;
 extern struct PCBNode* idle;
 extern struct PCBNode* init;
 
-extern int nextPID();
-
-extern struct PCBNode *readyQuqueHead;
-extern struct PCBNode *readyQueueTail;
-
-extern struct PCBNode *delayBlockingQueueHead;
-extern struct PCBNode *delayBlockingQueueTail;
-
-extern struct PCBNode *waitBlockingQueueHead;
-extern struct PCBNode *waitBlockingQueueTail;
-
-extern struct PCBNode *ttyReadBlockingQueueHead;
-extern struct PCBNode *ttyReadBlockingQueueTail;
-
-extern struct PCBNode *ttyWriteBlockingQueueHead;
-extern struct PCBNode *ttyWriteBlockingQuqueTail;
 
 /* Physical page node functions */
 extern int allocatePhysicalPage();
 extern void freePhysicalPage(int pfn);
 
+
 /* PCBNode functions */
-//extern PCBNode *initPCBNode(struct pte *pageTable, int status);
-//extern PCBNode* buildPCB(struct pte *pageTable, int status);
-//extern void addFirstToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp);
-//extern void addLastToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp);
-//extern struct PCBNode *removeFirstFromReadyQueue();
-extern void addToQueueAtHead(struct PCBNode *head, struct PCBNode *tail, struct PCBNode *toBeAdded);
-extern void addToQueueAtTail(struct PCBNode *head, struct PCBNode *tail, struct PCBNode *toBeAdded);
-extern struct PCBNode *removeFirstFromQueue(struct PCBNode *head, struct PCBNode *tail);
-extern struct PCBNode *removeLastFromQueue(struct PCBNode *head, struct PCBNode *tail);
 
 
 /* Switch util */
 
-extern SavedContext *initSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
+extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
+extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 #endif /* end _global_h */
 
+
+/* Process queue */
+struct queue{
+	struct PCBNode* proc;
+	struct queue* next;
+};
+
+extern void addToQEnd(struct queue* topush, struct queue* qTail);
+extern struct PCBNode* popQHead(struct queue* qHead);
+
+//extern queue *readyQueueHead, readyQueueTail

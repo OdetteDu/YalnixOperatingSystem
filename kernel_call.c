@@ -8,16 +8,59 @@
 #include "trap_handler.h"
 #include "global.h"
 
+/* Var */
+struct PCBNode* active_process;
 extern int KernelFork(void)
 {
 	TracePrintf(256, "Fork\n");
+	printf("[KernelFork] entrance\n");
+	struct PCBNode cur_active = *active_process;
+	struct PCBNode* newproc = malloc(sizeof(struct PCBNode));
+
+	if(newproc == NULL) return ERROR;
+
+	newproc = (struct PCBNode *)malloc(sizeof(struct PCBNode));
+	newproc -> PID = nextPID(); 
+	//will need to change this thing later
+	newproc -> pageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+	newproc -> status = READY;
+	newproc -> blockedReason = 0;
+	newproc -> numTicksRemainForDelay = 0;
+	newproc -> parent = NULL;
+	newproc -> child = NULL;
+	newproc -> prevSibling = NULL;
+	newproc -> nextSibling = NULL;
+
+	printf("[KernelFork] context switching\n");
+	TracePrintf(100, "Fork enter context switch\n");
+	ContextSwitch(forkSwitchFunc, &(cur_active.ctxp), &cur_active, newproc);
+	TracePrintf(100, "Fork left context switch\n");
+	
+	printf("[KernelFork] context switched\n");
+	if(cur_active.PID == active_process->PID){
+		printf("[KernelFork] parent return\n");
+	  //return from parent
+	  return newproc->PID;
+	}else{
+	  printf("[KernelFork] child return \n");
+	  //this is returning from child, which means we should maintain the child queue
+	  return 0;
+	}
 	return 0;
 }
 
-extern int KernelExec(char *filename, char **argvec)
+extern int KernelExec(char *filename, char **argvec, ExceptionStackFrame *frame)
 {
 	TracePrintf(256, "Exec: filename(%s), argvec(%s)\n", filename, argvec);
-	return 0;
+	
+    int status = LoadProgram(filename, argvec, frame);
+
+    if (status !=0) {
+        //KernelExit here
+        return ERROR;
+    }
+    else
+        return 0;	
 }
 
 extern int KernelExit(int status)

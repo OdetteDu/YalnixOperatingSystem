@@ -2,6 +2,7 @@
 #include <comp421/hardware.h>
 #include "global.h"
 #include "util.h"
+#include "kernel_call.h"
 #include "trap_handler.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,11 +19,19 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 	      exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 	      exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 	      exceptionStackFrame->regs);
-  /* int return;
+  int temp = 0;
   switch(exceptionStackFrame->code){
   case YALNIX_FORK:
     TracePrintf(0, "calling kernel Fork()");
-    }*/
+    exceptionStackFrame->regs[0] = KernelFork();
+    break;
+  case YALNIX_EXEC:
+    KernelExec((char *)exceptionStackFrame->regs[1], (char **)exceptionStackFrame->regs[2], exceptionStackFrame);
+    break;
+  default:
+    break;
+    
+  }
   
     
 }
@@ -35,19 +44,19 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	      exceptionStackFrame->regs);
   
   if(active_process->PID == 0)
-  {
-	    clockCount = 1;
-	    //	//TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
-	    ContextSwitch(initSwitchFunc, &(active_process->ctxp), active_process,init); 
-	TracePrintf(510, "Trap_clock: switch from idle to init\n");
-  }
+    {
+      clockCount = 1;
+      //	//TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
+      ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process,init); 
+      TracePrintf(510, "Trap_clock: switch from idle to init\n");
+    }
   else
-  {
-	 clockCount = 0;
-	 ContextSwitch(initSwitchFunc, &(active_process->ctxp), active_process, idle);
-	 TracePrintf(510, "Trap_clock: switch from init to idle\n");
+    {
+      clockCount = 0;
+      ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
+      TracePrintf(510, "Trap_clock: switch from init to idle\n");
 	    
-  }
+    }
  
 }
 
