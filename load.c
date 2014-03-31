@@ -10,15 +10,15 @@
 
 /* GLobal var */
 
-extern int numPhysicalPagesLeft;
-extern struct PhysicalPageNode *physicalPageNodeHead;
-extern unsigned int currentPID;
-extern SavedContext currentSavedContext;
-extern struct pte *KernelPageTable;
+//extern int numPhysicalPagesLeft;
+//extern struct PhysicalPageNode *physicalPageNodeHead;
+//extern unsigned int currentPID;
+//extern SavedContext currentSavedContext;
+//extern struct pte *KernelPageTable;
 extern struct pte *UserPageTable;
-extern void *new_brk;
+//extern void *new_brk;
 
-
+extern struct PCBNode* active_process;
 /*
  *  Load a program into the current process's address space.  The
  *  program comes from the Unix file identified by "name", and its
@@ -255,8 +255,10 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 		PTE -> pfn = allocatePhysicalPage();
 	}
 	TracePrintf(1536, "[LoadProgram] Initialize data and bss pages\n");
+	printUserPageTable(1920);
 	active_process -> heap_brk = (index << PAGESHIFT) - 1;
-
+//	TracePrintf(500, "PCB: heap_brk: %d (%d), stack_brk: %d (%d)\n", active_process -> heap_brk, active_process -> heap_brk >> PAGESHIFT, active_process -> stack_brk, active_process -> stack_brk >> PAGESHIFT);
+//
 	/* And finally the user stack pages */
 	/*
     >>>> For stack_npg number of PTEs in the Region 0 page table
@@ -280,9 +282,9 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 	TracePrintf(1536, "Initialize stack pages\n");
 	printUserPageTable(1920);
 
-	active_process -> stack_brk = (index << PAGESHIFT) + 1;
-	TracePrintf(500, "PCB: heap_brk: %d (%d), stack_brk: %d (%d)\n", active_process -> heap_brk, active_process -> heap_brk >> PAGESHIFT, active_process -> stack_brk, active_process -> stack_brk >> PAGESHIFT);
-
+//	active_process -> stack_brk = (index << PAGESHIFT) + 1;
+//	TracePrintf(500, "PCB: heap_brk: %d (%d), stack_brk: %d (%d)\n", active_process -> heap_brk, active_process -> heap_brk >> PAGESHIFT, active_process -> stack_brk, active_process -> stack_brk >> PAGESHIFT);
+//
 
 
 	/*

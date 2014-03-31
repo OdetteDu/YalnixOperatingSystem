@@ -40,8 +40,11 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 		exceptionStackFrame->regs[0] = KernelWait((int*)exceptionStackFrame->regs[1]);
 		break;
 	case YALNIX_GETPID:
-		exceptionStackFrame->regs[0] = KernelBrk((int)exceptionStackFrame->regs[1]);
+		exceptionStackFrame -> regs[0] = KernelGetPid();
 		break;
+	case YALNIX_BRK:
+		exceptionStackFrame -> regs[0] = KernelBrk(exceptionStackFrame -> regs[1]);
+		break;;
 	case YALNIX_DELAY:
 		exceptionStackFrame->regs[0] = KernelDelay((int)exceptionStackFrame->regs[1]);
 		break;
@@ -124,7 +127,7 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 		}
 	}
 
-	if(clockTick >= 2)
+	if(clockTick >= 1)
 	{
 
 		if(readyQHead != NULL){
@@ -288,16 +291,16 @@ extern void trapTTYTransmit(ExceptionStackFrame *exceptionStackFrame)
 	//addToQEnd(popTTYQHead(TTYWriteQueueHead), readyQueueTail);
 	//How to know which terminal is this?
 
-	if(TTYWriteQueueHead != NULL)
-	{
-		TtyTransmit(tty_id, TTYWriteQueueHead -> buffer, TTYWriteQueueHead -> length);
-	}
-	else
-	{
-		isTerminalBusy[tty_id] = 0;
-		TTYWriteQueueHead = NULL;
-		TTYWriteQueueTail = NULL;
-	}
+//	if(TTYWriteQueueHead != NULL)
+//	{
+//		TtyTransmit(tty_id, TTYWriteQueueHead -> buffer, TTYWriteQueueHead -> length);
+//	}
+//	else
+//	{
+//		isTerminalBusy[tty_id] = 0;
+//		TTYWriteQueueHead = NULL;
+//		TTYWriteQueueTail = NULL;
+//	}
 
 }
 

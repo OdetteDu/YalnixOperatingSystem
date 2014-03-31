@@ -357,26 +357,26 @@ extern int KernelTtyRead(int tty_id, void *buf, int len)
 extern int KernelTtyWrite(int tty_id, void *buf, int len)
 {
 	TracePrintf(256, "TtyWrite: tty_id(%d), buf(%s), len(%d)\n", tty_id, buf, len);
-	struct TTYQueue *newQueueNode = malloc(sizeof(struct TTYQueue));
-	newQueueNode -> proc = active_process;
-	newQueueNode -> next = NULL;
-	newQueueNode -> length = len;
-	newQueueNode -> buffer = buf;//not sure about the copy here
-
-	if (isTerminalBusy[tty_id] == 0)
-	{
-		TracePrintf(200, "[KernelTtyWrite] Terminal %d is not busy, prepare to write to termianl.\n", tty_id);
-		isTerminalBusy[tty_id] = 1;
-		TTYWriteQueueHead = newQueueNode;
-		TTYWriteQueueTail = newQueueNode;
-		TtyTransmit(tty_id, TTYWriteQueueHead -> buffer, len);
-	}
-	else
-	{
-		TracePrintf(200, "[KernelTtyWrite] Terminal %d is busy, put into the blocking queue.\n", tty_id);
-		//Save the buffer and length in kernel
-		addToTTYQEnd(newQueueNode, TTYWriteQueueTail);
-	}
-	return 0;
+//	struct TTYQueue *newQueueNode = malloc(sizeof(struct TTYQueue));
+//	newQueueNode -> proc = active_process;
+//	newQueueNode -> next = NULL;
+//	newQueueNode -> length = len;
+//	newQueueNode -> buffer = buf;//not sure about the copy here
+//
+//	if (isTerminalBusy[tty_id] == 0)
+//	{
+//		TracePrintf(200, "[KernelTtyWrite] Terminal %d is not busy, prepare to write to termianl.\n", tty_id);
+//		isTerminalBusy[tty_id] = 1;
+//		TTYWriteQueueHead = newQueueNode;
+//		TTYWriteQueueTail = newQueueNode;
+//		TtyTransmit(tty_id, TTYWriteQueueHead -> buffer, len);
+//	}
+//	else
+//	{
+//		TracePrintf(200, "[KernelTtyWrite] Terminal %d is busy, put into the blocking queue.\n", tty_id);
+//		//Save the buffer and length in kernel
+//		addToTTYQEnd(newQueueNode, TTYWriteQueueTail);
+//	}
+//	return 0;
 }
 
