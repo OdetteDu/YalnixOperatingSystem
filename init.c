@@ -1,32 +1,34 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <comp421/yalnix.h>
 #include <comp421/hardware.h>
-#include <stdio.h>
-//int a = 5, c = 15;
 
-int main()
+void
+foo(int depth)
 {
-	char *new;
-    new = malloc(100000);
+    char array[65532];
+    int i;
 
-    Exit(0);//	
+    TracePrintf(0, "blowstack foo: depth %d\n", depth);
+
+    fprintf(stderr,"%d ",depth);
+    fflush(stderr);
+
+    for (i = 0; i < sizeof(array); i++)
+array[i] = 'a';
+
+    if (depth == 1) return;
+
+    foo(depth-1);
 }
 
-//void
-//force(char *addr)
-//{
-//    *addr = 42;
-//}
-//
-//int
-//main()
-//{
-//    char big_buffer[20*1024];
-//    int foo;
-//    int i;
-//
-//    foo = 42;
-//    for (i = 0; i < sizeof(big_buffer); i++)
-//force(big_buffer + i);
-//
-//    Exit(0);
-//}
+int
+main(int argc, char **argv)
+{
+    int num = atoi(argv[1]);
+
+    TracePrintf(0, "blowstack initially calling foo depth %d", num);
+    foo(num);
+
+    Exit(0);
+}
