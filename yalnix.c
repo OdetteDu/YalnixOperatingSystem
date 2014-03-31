@@ -155,8 +155,8 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
 
 	//printf("check if table2 is allocated table2[0] = %d\n", table2[0]);
 	for(i=0; i<PAGE_TABLE_LEN;i++){
-		table2[i].valid = UserPageTable[i].valid;
-		if(UserPageTable[i].valid){//allow for full access in new table first
+		table2[i].valid = table1[i].valid;
+		if(table1[i].valid){//allow for full access in new table first
 			table2[i].kprot = PROT_READ | PROT_WRITE;
 			table2[i].uprot = PROT_NONE;
 			buffer[i] = malloc(PAGESIZE);
