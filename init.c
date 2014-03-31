@@ -3,30 +3,30 @@
 #include <stdio.h>
 //int a = 5, c = 15;
 
-//int main()
+int main()
+{
+	char *new;
+    new = malloc(100000);
+
+    Exit(0);//	
+}
+
+//void
+//force(char *addr)
 //{
-//	char *new;
-//    new = malloc(100000);
-//
-//    Exit(0);//	
+//    *addr = 42;
 //}
-
-void
-force(char *addr)
-{
-    *addr = 42;
-}
-
-int
-main()
-{
-    char big_buffer[20*1024];
-    int foo;
-    int i;
-
-    foo = 42;
-    for (i = 0; i < sizeof(big_buffer); i++)
-force(big_buffer + i);
-
-    Exit(0);
-}
+//
+//int
+//main()
+//{
+//    char big_buffer[20*1024];
+//    int foo;
+//    int i;
+//
+//    foo = 42;
+//    for (i = 0; i < sizeof(big_buffer); i++)
+//force(big_buffer + i);
+//
+//    Exit(0);
+//}

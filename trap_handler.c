@@ -35,8 +35,7 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 		exceptionStackFrame -> regs[0] = KernelGetPid();
 		break;
 	case YALNIX_BRK:
-		TracePrintf(200, "YALNIX_BRK: addr(%d) %d.\n", exceptionStackFrame -> addr);
-		exceptionStackFrame -> regs[0] = KernelBrk(exceptionStackFrame -> addr);
+		exceptionStackFrame -> regs[0] = KernelBrk(exceptionStackFrame -> regs[1]);
 		break;
 	case YALNIX_DELAY:
 		exceptionStackFrame -> regs[0] = KernelDelay(exceptionStackFrame -> regs[1]);
