@@ -7,10 +7,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static int clockCount = 0;
-struct PCBNode* init;
-struct PCBNode* idle;
-struct PCBNode* active_process;
+unsigned int clockTick;
+extern struct PCBNode* init;
+extern struct PCBNode* idle;
+extern struct PCBNode* active_process;
+
+extern struct queue *waitingQHead, *waitingQTail;
+extern struct queue *readyQHead, *readyQTail;
+extern struct queue *delayQueueHead, *delayQueueTail;
 
 extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 {
@@ -30,12 +34,21 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
   case YALNIX_EXIT:
     KernelExit((int)exceptionStackFrame->regs[1]);
     break;
+  case YALNIX_WAIT:
+    exceptionStackFrame->regs[0] = KernelWait((int*)exceptionStackFrame->regs[1]);
+    break;
+  case YALNIX_GETPID:
+    exceptionStackFrame->regs[0] = KernelBrk((int)exceptionStackFrame->regs[1]);
+    break;
+  case YALNIX_DELAY:
+    exceptionStackFrame->regs[0] = KernelDelay((int)exceptionStackFrame->regs[1]);
+  case YALNIX_TTY_READ:
+    break;
+  case YALNIX_TTY_WRITE:
+    break;
   default:
     break;
-    
   }
-  
-    
 }
 
 extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
@@ -45,25 +58,73 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	      exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 	      exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 	      exceptionStackFrame->regs);
-  if(clockCount == 5){
+  /*
+    if(clockCount == 5){
     if(active_process->PID == 0)
-      {
+    {
      
-	//	//TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
-	ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process,init); 
-	TracePrintf(510, "Trap_clock: switch from idle to init\n");
-      }
+    //	//TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
+    ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process,init); 
+    TracePrintf(510, "Trap_clock: switch from idle to init\n");
+    }
     else if (active_process->PID == 1)
-      {
+    {
       
-	ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
-	TracePrintf(510, "Trap_clock: switch from init to idle\n");
+    ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
+    TracePrintf(510, "Trap_clock: switch from init to idle\n");
 	    
-      }
+    }
     clockCount = 0;
-  }else{
+    }else{
     clockCount ++;
-  }
+    }*/
+  /*
+  struct queue *current = delayQueueHead;
+  while(current != NULL)
+    {
+      struct PCBNode *currentPCB = current -> proc;
+      (currentPCB -> numTicksRemainForDelay) --;
+      if(currentPCB -> numTicksRemainForDelay == 0)
+	{
+	  //remove that specific PCB from delayQueue
+	  //addToQEnd(currentPCB, readyQueueTail);
+	}
+      current = current -> next;
+    }
+  */
+  if(clockTick >= 2)
+    {
+      
+      if(readyQHead != NULL){
+	printf("We are poping ready Q head right now!\n");
+	struct queue* head = readyQHead;
+	struct PCBNode* p2 = head->proc;
+	readyQHead = head->next;
+	free(head);
+	
+	printf("We poped out PID %d\n", p2->PID);
+	if(readyQHead == NULL) readyQTail = NULL;
+	//	printf("Now the ready queue head is%d\n", (p2->proc)->PID);
+	ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, p2);
+	printf("Now the ready queue head is%d\n", (readyQHead->proc)->PID);
+	clockTick = 0;
+	TracePrintf(256, "Trap_clock: switch from pid1: %d to pid2: %d\n", active_process->PID, p2->PID);
+      }else{
+	if(active_process!= idle){
+	  printf("We are just switching to idle!\n");
+	  ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
+	  clockTick = 0;
+	  TracePrintf(256, "Trap_clock: switch from pid1: %d to pid2: %d\n", active_process->PID, idle->PID);
+	}//otherwise do not process
+	
+      }
+      clockTick = 0;
+      
+    }
+  else
+    {
+      clockTick ++;
+    }
  
 }
 
@@ -96,8 +157,8 @@ extern void trapIllegal(ExceptionStackFrame *exceptionStackFrame)
   else
     printf(msg, "Unknown code 0x%x", code);
   
-  //KernelExit(ERROR);
-  printf(msg);
+  KernelExit(ERROR);
+  //printf(msg);
 }
 
 extern void trapMemory(ExceptionStackFrame *exceptionStackFrame)
@@ -153,7 +214,7 @@ extern void trapMath(ExceptionStackFrame *exceptionStackFrame)
     printf(msg, "Unknown code %d", exceptionStackFrame->code);
   }
 
-  //Kernel_Exit(ERROR);
+  KernelExit(ERROR);
 }
 
 extern void trapTTYReceive(ExceptionStackFrame *exceptionStackFrame)

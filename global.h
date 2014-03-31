@@ -4,6 +4,7 @@
 extern void (*interruptTable[TRAP_VECTOR_SIZE])(ExceptionStackFrame *);
 
 
+
 //PID Generator
 extern unsigned int PIDGenerator;
 extern int nextPID();
@@ -59,9 +60,9 @@ struct PCBNode
 	struct queue* children;
 };
 
-struct PCBNode* active_process;
-struct PCBNode* idle;
-struct PCBNode* init;
+extern struct PCBNode* active_process;
+extern struct PCBNode* idle;
+extern struct PCBNode* init;
 
 /* Process queue */
 struct queue{
@@ -71,6 +72,7 @@ struct queue{
 
 extern struct queue *waitingQHead, *waitingQTail;
 extern struct queue *readyQHead, *readyQTail;
+extern struct queue *delayQueueHead, *delayQueueTail;
 
 extern void addToQEnd(struct queue* topush, struct queue* qTail);
 extern struct PCBNode* popQHead(struct queue* qHead);

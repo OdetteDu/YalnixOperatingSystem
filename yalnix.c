@@ -46,11 +46,15 @@ struct PhysicalPageNode *physicalPageNodeHead;
 struct PhysicalPageNode *physicalPageNodeTail;
 
 //Current process
-extern struct PCBNode *idle;
-extern struct PCBNode *active_process;
-extern struct PCBNode *init;
+struct PCBNode *idle;
+struct PCBNode *active_process;
+struct PCBNode *init;
 
 //Process Queue
+struct queue *waitingQHead, *waitingQTail;
+struct queue *readyQHead, *readyQTail;
+struct queue *delayQueueHead, *delayQueueTail;
+
 
 /* Function declaration */
 extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2);
@@ -100,7 +104,7 @@ extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
   active_process = p2;
   memcpy(&(((struct PCBNode*)p1)->ctxp), ctxp, sizeof(SavedContext));
   //TODO: put p1 in ready queue
-  struct queue* pcb1;//should check for if p1 is idle here ..
+  struct queue* pcb1 = malloc(sizeof(struct queue));//should check for if p1 is idle here ..
   pcb1->proc = ((struct PCBNode*)p1);
   pcb1->next = NULL;
   if(readyQHead == NULL){
@@ -173,7 +177,9 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
   WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
   active_process = p2;
   /* Maintain the parent/children part??*/
-  struct queue* child = {p2, 0};
+  struct queue* child = malloc(sizeof(struct queue));
+  child->proc = ((struct PCBNode*)p2);
+  child->next = NULL;
   if(((struct PCBNode*)p1)->children == 0){
     ((struct PCBNode*)p1)->children = child; 
   }else{
@@ -183,7 +189,7 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
   ((struct PCBNode*)p2)->parent = ((struct PCBNode*)p1);
   //TODO: write a process queue and put p1 in the ready queue
     //TODO: put p1 in ready queue
-  struct queue* pcb1;//should check for if p1 is idle here ..
+  struct queue* pcb1 = malloc(sizeof(struct queue));//should check for if p1 is idle here ..
   pcb1->proc = ((struct PCBNode*)p1);
   pcb1->next = NULL;
   if(readyQHead == 0){
@@ -194,7 +200,7 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
     readyQTail = pcb1;
   }
   
-  printf("Switched from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
+  printf("ForkSwitched from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
   return &(((struct PCBNode*)p2)->ctxp);
   
 }

@@ -9,22 +9,24 @@
 
 /* Global var declaration */
 
-struct PhysicalPageNode* physicalPageNodeHead;
-struct pte *UserPageTable;
-struct pte *KernelPageTable;
+extern struct PhysicalPageNode* physicalPageNodeHead;
+extern struct pte *UserPageTable;
+extern struct pte *KernelPageTable;
 
 
 /*Queue util */
 
 extern void addToQEnd(struct queue* topush, struct queue* qTail){
 	qTail->next = topush;
-	topush = qTail;
+	qTail = topush;
 }
 
 extern struct PCBNode* popQHead(struct queue* qHead){
-	struct queue* temp = qHead;
-	qHead = temp->next;
-	return temp->proc;
+	printf("POPING QHEAD:  %d\n", qHead);
+	struct PCBNode* temp = qHead->proc;
+	qHead = qHead->next;
+	printf("POPING QHEAD: temp %d\n", temp->PID);
+	return temp;
 }
 
 /* Physical page node util */

@@ -10,13 +10,13 @@
 
 /* GLobal var */
 
-int numPhysicalPagesLeft;
-struct PhysicalPageNode *physicalPageNodeHead;
-unsigned int currentPID;
-SavedContext currentSavedContext;
-struct pte *KernelPageTable;
-struct pte *UserPageTable;
-void *new_brk;
+extern int numPhysicalPagesLeft;
+extern struct PhysicalPageNode *physicalPageNodeHead;
+extern unsigned int currentPID;
+extern SavedContext currentSavedContext;
+extern struct pte *KernelPageTable;
+extern struct pte *UserPageTable;
+extern void *new_brk;
 
 
 /*

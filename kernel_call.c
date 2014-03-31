@@ -10,9 +10,9 @@
 #include <stdio.h>
 
 /* Var */
-struct PCBNode* active_process;
-struct queue* waitingQHead, *waitingQTail;
-struct queue* readyQHead, *readyQTail;
+extern struct PCBNode* active_process;
+extern struct queue* waitingQHead, *waitingQTail;
+extern struct queue* readyQHead, *readyQTail;
 extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
 extern int KernelFork(void)
 {
@@ -95,6 +95,7 @@ extern int KernelExit(int status)
 	  if(tempchild->status == TERMINATED){
 	    //reap zombie child
 	    free(tempchild);
+	    free(child);
 	  }else{
 	    tempchild->parent = 0;
 	  }
