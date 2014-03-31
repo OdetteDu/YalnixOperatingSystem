@@ -29,11 +29,16 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 	case YALNIX_EXEC:
 		KernelExec((char *)exceptionStackFrame->regs[1], (char **)exceptionStackFrame->regs[2], exceptionStackFrame);
 		break;
+	case YALNIX_EXIT:
+		KernelExit((int)exceptionStackFrame -> regs[1]);
 	case YALNIX_GETPID:
 		exceptionStackFrame -> regs[0] = KernelGetPid();
 		break;
-	case YALNIX_EXIT:
-		KernelExit((int)exceptionStackFrame -> regs[1]);
+	case YALNIX_BRK:
+		exceptionStackFrame -> regs[0] = KernelBrk(exceptionStackFrame -> addr);
+		break;
+	case YALNIX_DELAY:
+		exceptionStackFrame -> regs[0] = KernelDelay(exceptionStackFrame -> regs[1]);
 	default:
 		break;
 	}
