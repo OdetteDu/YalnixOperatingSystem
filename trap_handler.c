@@ -78,7 +78,8 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
     }else{
     clockCount ++;
     }*/
-  /*
+  
+  struct queue* previous = NULL;
   struct queue *current = delayQueueHead;
   while(current != NULL)
     {
@@ -86,12 +87,37 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
       (currentPCB -> numTicksRemainForDelay) --;
       if(currentPCB -> numTicksRemainForDelay == 0)
 	{
+	  currentPCB->status = READY;
 	  //remove that specific PCB from delayQueue
 	  //addToQEnd(currentPCB, readyQueueTail);
+	  if(previous==NULL){//when current is the head of the list
+	    previous = current;
+	    delayQueueHead = current->next;
+	    //push to readyQ
+	    if(readyQHead == NULL){
+	      readyQHead = previous;
+	      readyQTail = previous;
+	    }else{
+	      readyQTail->next = previous;
+	      readyQTail = previous;
+	    }//pushed
+	    previous = NULL;
+	    current = delayQueueHead;
+	  }else{//when current is not head of things
+	    previous->next = current->next;
+	     //push to readyQ
+	    if(readyQHead == NULL){
+	      readyQHead = current;
+	      readyQTail = current;
+	    }else{
+	      readyQTail->next = current;
+	      readyQTail = current;
+	    }//pushed
+	    current = previous->next;
+	  }//end-of-remove-from-delay-queue
 	}
-      current = current -> next;
     }
-  */
+  
   if(clockTick >= 2)
     {
       

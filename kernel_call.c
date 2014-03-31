@@ -89,17 +89,31 @@ extern int KernelExit(int status)
 	}
 	active_process->status = TERMINATED;
 	TracePrintf(0, "[Exit] freed region 0\n");
+	struct queue* prev = NULL;//need to keep the chain working
 	struct queue* child = active_process->children;
 	while(child!=0){
 	  struct PCBNode* tempchild = child->proc;
 	  if(tempchild->status == TERMINATED){
 	    //reap zombie child
-	    free(tempchild);
-	    free(child);
+	    //need more work here to keep the chain dude
+	    if(prev==NULL){/**********NOT SURE WHAT THE HELL I M DOING HERE **********/
+	      prev = child;
+	      child = child->next;
+	      free(tempchild);
+	      free(prev);
+	      prev = NULL;
+	    }else{
+	      prev->next = child->next;
+	      free(tempchild);
+	      free(child);
+	      child = prev->next;
+	    }
 	  }else{
+	    prev = child;
 	    tempchild->parent = 0;
+	    child = child->next;
 	  }
-	  child = child->next;
+	  // child = child->next;
 	}
 	
 	TracePrintf(0, "[Exit] reaped zombie children\n");
@@ -166,6 +180,27 @@ extern int KernelBrk(void *addr)
 extern int KernelDelay(int clock_ticks)
 {
 	TracePrintf(256, "Delay: clock_ticks(%d)\n", clock_ticks);
+	if(clock_ticks < 0){
+	  return ERROR;
+	}else if(clock_ticks > 0){
+	  //first set the CurPCB delay
+	  active_process->numTicksRemainForDelay= clock_ticks;
+	  active_process->status = BLOCKED;
+	  
+	  struct PCBNode * nextProc;
+	  if(readyQHead == NULL){
+	    nextProc = idle;
+	  }else{
+	    struct queue* temp = readyQHead;
+	    nextProc = readyQHead->proc;
+	    readyQHead = readyQHead->next;
+	    free(temp);//need to free the poped item from  queue
+	  }
+	  
+	  ContextSwitch(delaySwitchFunc, &(active_process->ctxp), active_process, nextProc);
+	  
+	  
+	}
 	return 0;
 }
 

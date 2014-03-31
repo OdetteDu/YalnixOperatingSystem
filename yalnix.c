@@ -57,7 +57,6 @@ struct queue *delayQueueHead, *delayQueueTail;
 
 
 /* Function declaration */
-extern SavedContext *MySwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
 
 extern int nextPID()
@@ -79,6 +78,36 @@ extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
   return  &(((struct PCBNode*)p2)->ctxp);
   
 }
+/* Only Difference with generalSwitch is we push delay queue*/
+extern SavedContext *delaySwitchFunc(SavedContext *ctxp, void* p1, void* p2){
+  struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
+  struct pte *table2 = ((struct PCBNode*)p2)->pageTable;
+  TracePrintf(256, "[Delay Switch] Entrance\n");
+  //check if p2 is null
+  if(!p2){
+    return &(((struct PCBNode*)p1)->ctxp);
+    }
+  UserPageTable = table2;
+  WriteRegister(REG_PTR0, (RCS421RegVal)table2);
+  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+  ((struct PCBNode*)p2)->status = ACTIVE;
+  ((struct PCBNode*)p1)->status = READY;
+  active_process = p2;
+  memcpy(&(((struct PCBNode*)p1)->ctxp), ctxp, sizeof(SavedContext));
+  //TODO: put p1 in ready queue
+  struct queue* pcb1 = malloc(sizeof(struct queue));//should check for if p1 is idle here ..
+  pcb1->proc = ((struct PCBNode*)p1);
+  pcb1->next = NULL;
+  if(delayQueueHead == NULL){
+    delayQueueHead = pcb1;
+    delayQueueTail = pcb1;
+  }else{
+    delayQueueTail->next = pcb1;
+    delayQueueTail = pcb1;
+  }  //printUserPageTable(2000);
+  printf("[DelaySwitched] from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
+  return &(((struct PCBNode*)p2)->ctxp);
+}
 
 extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
   struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
@@ -88,14 +117,6 @@ extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
   if(!p2){
     return &(((struct PCBNode*)p1)->ctxp);
     }
-  //printUserPageTable(2000);
-  // WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-  // memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
-  //WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-  // memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
-  // WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-  //printUserPageTable(2000);
-  //  memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
   UserPageTable = table2;
   WriteRegister(REG_PTR0, (RCS421RegVal)table2);
   WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
@@ -113,9 +134,8 @@ extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
   }else{
     readyQTail->next = pcb1;
     readyQTail = pcb1;
-  }
-
-  printf("Switched from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
+  }  //printUserPageTable(2000);
+  printf("[General Switched] from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
   return &(((struct PCBNode*)p2)->ctxp);
 }
 /**

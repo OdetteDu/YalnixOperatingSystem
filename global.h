@@ -91,6 +91,7 @@ extern void freePhysicalPage(int pfn);
 
 extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
+extern SavedContext *delaySwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void *p1, void *p2);
 #endif /* end _global_h */
 
