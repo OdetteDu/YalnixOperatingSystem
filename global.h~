@@ -15,7 +15,7 @@ extern void *new_brk;
 //Page Tables
 extern struct pte *KernelPageTable;
 extern struct pte *UserPageTable;
-//extern struct pte **forkTBL;
+extern struct pte *forkTlist[4];
 
 //Available Physical Pages
 struct PhysicalPageNode

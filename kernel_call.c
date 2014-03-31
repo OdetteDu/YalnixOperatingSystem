@@ -13,9 +13,14 @@
 extern struct PCBNode* active_process;
 extern struct queue* waitingQHead, *waitingQTail;
 extern struct queue* readyQHead, *readyQTail;
+//extern struct pte** forkTBL;
+extern struct pte *UserPageTable, *KernelPageTable;
+
+
 
 extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
-
+static int current_pfn;
+int cur_index;
 extern int KernelFork(void)
 {
 	TracePrintf(256, "Fork\n");
@@ -23,13 +28,49 @@ extern int KernelFork(void)
 	struct PCBNode cur_active;
 	memcpy(&cur_active, active_process, sizeof(struct PCBNode));
 	struct PCBNode* newproc;
-
-	if(newproc == NULL) return ERROR;
-
+	
+	//if(newproc == NULL) return ERROR;
+	int offset = 0;
 	newproc = (struct PCBNode *)malloc(sizeof(struct PCBNode));
+	
+	if(newproc == NULL){ return ERROR;}
+	
 	newproc -> PID = nextPID();
+	/* Find a new page table */
+	TracePrintf(100, "[Kernel Fork] try to allocate a new page table.\n");
+	struct pte *temp = KernelPageTable + VMEM_1_SIZE/PAGESIZE -2-cur_index;
+	temp->valid = 1;
+	temp->uprot = 0;
+	temp->kprot = PROT_READ | PROT_WRITE;//set access for the kernel
+	if(current_pfn == 0){//we don't have a pfn existing that we can use the rest half
+	  temp->pfn = allocatePhysicalPage();
+	  current_pfn = temp->pfn;
+	  newproc->pageTable = (struct pte*)((temp->pfn)*PAGESIZE);
+	}else{//we have an existing pfn, we can use the upper half
+	  temp->pfn = current_pfn;
+	  offset = PAGE_TABLE_LEN;//offset
+	  newproc->pageTable = (struct pte*)((temp->pfn)*PAGESIZE + PAGE_TABLE_SIZE);
+	 // cur_index ++;
+	}
+	//map the table
+	struct pte* entry = (struct pte *)(VMEM_1_LIMIT-(2+cur_index)*PAGESIZE);
+	int i;
+	for(i=0; i<VMEM_0_SIZE/PAGESIZE; i++){
+	  // struct pte new_entry;
+	  if((i<<PAGESHIFT)>=KERNEL_STACK_BASE){//this is kernel stack pages
+	    ((struct pte*)(entry+i+offset))->valid = 1;
+	    ((struct pte*)(entry+i+offset))->uprot = 0;
+	    ((struct pte*)(entry+i+offset))->kprot = PROT_READ | PROT_WRITE;
+	   
+	  }else{
+	    ((struct pte*)(entry+i+offset))->valid = 0;
+	  }
+	}
+	if(offset==PAGE_TABLE_LEN){
+		cur_index++;
+	}
 	//will need to change this thing later
-	newproc -> pageTable =malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+	//	newproc -> pageTable = //forkTBL[0];//malloc(PAGE_TABLE_LEN * sizeof(struct pte));
 	newproc -> status = READY;
 	newproc -> blockedReason = 0;
 	newproc -> numTicksRemainForDelay = 0;
@@ -38,7 +79,7 @@ extern int KernelFork(void)
 	newproc -> prevSibling = NULL;
 	newproc -> nextSibling = NULL;
 
-	printf("[KernelFork] context switching\n");
+	//printf("[KernelFork] context switching\n");
 	TracePrintf(100, "Fork enter context switch\n");
 	ContextSwitch(forkSwitchFunc, &(cur_active.ctxp), &cur_active, newproc);
 	TracePrintf(100, "Fork left context switch\n");

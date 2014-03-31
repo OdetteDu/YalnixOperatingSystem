@@ -40,6 +40,14 @@ struct pte myKernelPageTable[PAGE_TABLE_LEN];
 struct pte myUserPageTable[PAGE_TABLE_LEN];
 struct pte myInitPageTable[PAGE_TABLE_LEN];
 struct pte myIdlePageTable[PAGE_TABLE_LEN];
+/*
+struct pte fork1[PAGE_TABLE_LEN];
+struct pte fork2[PAGE_TABLE_LEN];
+struct pte fork3[PAGE_TABLE_LEN];
+struct pte fork4[PAGE_TABLE_LEN];
+struct pte* forkTlist[4] = {fork1, fork2, fork3, fork4};
+struct pte** forkTBL = forkTlist;
+*/
 
 //physical pages
 struct PhysicalPageNode *physicalPageNodeHead;
@@ -153,18 +161,18 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
 	 *  We must call fork from the active process.
 	 **/
 
-	//printf("check if table2 is allocated table2[0] = %d\n", table2[0]);
+	printf("check if table2 is allocated table2[0] = %d\n", table2[0]);
 	for(i=0; i<PAGE_TABLE_LEN;i++){
 		table2[i].valid = table1[i].valid;
 		if(table1[i].valid){//allow for full access in new table first
 			table2[i].kprot = PROT_READ | PROT_WRITE;
 			table2[i].uprot = PROT_NONE;
 			buffer[i] = malloc(PAGESIZE);
-			TracePrintf(256, "[Switch Copy]: allocated memory for the %d page %p\n", i, buffer[i]);
+			TracePrintf(256, "[Fork Switch Copy]: allocated memory for the %d page %p\n", i, buffer[i]);
 			memcpy(buffer[i], (uint64_t *)(i<<PAGESHIFT), PAGESIZE);
 		}
 	}
-	//printUserPageTable(1024);
+	printUserPageTable(1024);
 	//swap region0 now;
 	// WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
 	//memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
@@ -173,10 +181,11 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
 	// memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
 	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
 	// memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
+	printUserPageTable(1024);
 
 
 	// WriteRegister(REG_PTR0, (RCS421RegVal)UserPageTable);
-	TracePrintf(256, "[Switch COpy] buffer completed \n");
+	TracePrintf(256, "[Fork Switch Copy] buffer completed \n");
 	/* Copy back from buffer */
 	for(i=0;i<PAGE_TABLE_LEN;i++){
 		if(UserPageTable[i].valid){
@@ -186,9 +195,9 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
 			memcpy((uint64_t *)(i<<PAGESHIFT), buffer[i], PAGESIZE);
 			free(buffer[i]);//free is internal to malloc?? does not call setkernelpagebrk;
 			//leave it as it is
-			TracePrintf(256, "[Swtich COpy]: freed memory for the %d page \n", i);
-			UserPageTable[i].kprot = PROT_READ | PROT_WRITE;
-			UserPageTable[i].uprot = PROT_NONE;
+			TracePrintf(256, "[Fork Swtich Copy]: freed memory for the %d page \n", i);
+			UserPageTable[i].kprot = table1[i].kprot;// PROT_READ | PROT_WRITE;
+			UserPageTable[i].uprot = table1[i].uprot;//PROT_NONE;
 		}
 	}
 	//printUserPageTable(1024);
