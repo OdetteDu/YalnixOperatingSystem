@@ -53,11 +53,13 @@ struct PCBNode
   int blockedReason;
   int numTicksRemainForDelay; 
 
+  struct exitStatusQ* exitStatusQ;
+
   struct PCBNode *parent;
   struct PCBNode *prevSibling;
   struct PCBNode *nextSibling;
   struct PCBNode *child;
-	struct queue* children;
+struct queue* children;
 };
 
 extern struct PCBNode* active_process;
@@ -69,6 +71,12 @@ struct queue{
 	struct PCBNode* proc;
 	struct queue* next;
 };
+
+struct exitStatusQ{
+	int exitStatus;
+	int PID;
+	struct exitStatusQ* next;
+}
 
 extern struct queue *waitingQHead, *waitingQTail;
 extern struct queue *readyQHead, *readyQTail;
