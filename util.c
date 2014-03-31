@@ -38,10 +38,10 @@ extern int allocatePhysicalPage()
 	int number = allocatedPhysicalPageNode -> pageNumber;
 	free(allocatedPhysicalPageNode);
 	numPhysicalPagesLeft--;
-//<<<<<<< HEAD
-//=======
+	//<<<<<<< HEAD
+	//=======
 	TracePrintf(1536, "Allocated physical page number %d\n", number);
-//>>>>>>> bing
+	//>>>>>>> bing
 	return number;
 }
 
@@ -73,7 +73,7 @@ extern PCBNode* initPCBNode(struct pte *pageTable, int status){
   pcb = (PCBNode *) malloc(sizeof(PCBNode));
   return pcb;
 }
-*/
+ */
 /*
 
 extern void addFirstToReadyQueue(int pid, struct pte *pageTable, SavedContext ctxp)
@@ -145,7 +145,7 @@ extern void printKernelPageTable(int level)
 	int index;
 	for(index = 0; index < PAGE_TABLE_LEN; index++)
 	{
-		  TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
+		TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, KernelPageTable[index].valid, KernelPageTable[index].pfn);
 	}
 }
 
@@ -155,7 +155,7 @@ extern void printUserPageTable(int level)
 	int index;
 	for(index = 0; index < PAGE_TABLE_LEN; index++)
 	{
-		  TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
+		TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
 	}
 }
 
