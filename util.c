@@ -44,11 +44,20 @@ extern int allocatePhysicalPage()
 {
 	struct PhysicalPageNode *allocatedPhysicalPageNode = physicalPageNodeHead;
 	physicalPageNodeHead = allocatedPhysicalPageNode -> next;
-	int number = allocatedPhysicalPageNode -> pageNumber;
-	free(allocatedPhysicalPageNode);
-	numPhysicalPagesLeft--;
-	TracePrintf(1536, "Allocated physical page number %d\n", number);
-	return number;
+
+	if(allocatedPhysicalPageNode != NULL)
+	{
+		int number = allocatedPhysicalPageNode -> pageNumber;
+		free(allocatedPhysicalPageNode);
+		numPhysicalPagesLeft--;
+		TracePrintf(1536, "Allocated physical page number %d\n", number);
+		return number;
+	}
+	else
+	{
+		TracePrintf(0, "ERROR: No free physical page to allocate");
+		return ERROR;
+	}
 }
 
 extern void freePhysicalPage(int pfn)

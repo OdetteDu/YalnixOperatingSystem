@@ -244,6 +244,7 @@ extern int SetKernelBrk(void *addr)
 
   }
   TracePrintf(0, "finish set kernel brk!\n");	
+  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_1);
   return 0;
 }
 

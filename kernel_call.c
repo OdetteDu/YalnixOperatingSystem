@@ -196,18 +196,19 @@ extern int KernelGetPid(void)
 extern int KernelBrk(void *addr)
 {
 	TracePrintf(256, "Brk: addr(%d)\n", addr);
-	TracePrintf(256, "Brk: addr(%d)\n", addr);
 
 	//check if the addr is illegal
 	if(addr < MEM_INVALID_SIZE)
 	{
 		TracePrintf(0, "Error in KernelBrk: Trying to set the brk below MEM_INVALID_SIZE.\n");
 		//Exit the program.
+		return ERROR;
 	}
 
 	if(addr > DOWN_TO_PAGE(active_process -> stack_brk) - PAGESIZE)
 	{
 		TracePrintf(0, "Error in KernelBrk: Trying to set the brk inside or above the red zone.\n");
+		return ERROR;
 	}
 
 	unsigned int userTablePTE;
@@ -239,7 +240,6 @@ extern int KernelBrk(void *addr)
 	}
 
 	active_process -> heap_brk = addr;
-	return 0;
 	return 0;
 }
 
