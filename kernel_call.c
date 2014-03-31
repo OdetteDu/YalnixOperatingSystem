@@ -20,15 +20,16 @@ extern int KernelFork(void)
 {
 	TracePrintf(256, "Fork\n");
 	printf("[KernelFork] entrance\n");
-	struct PCBNode cur_active = *active_process;
-	struct PCBNode* newproc = malloc(sizeof(struct PCBNode));
+	struct PCBNode cur_active;
+	memcpy(&cur_active, active_process, sizeof(struct PCBNode));
+	struct PCBNode* newproc;
 
 	if(newproc == NULL) return ERROR;
 
 	newproc = (struct PCBNode *)malloc(sizeof(struct PCBNode));
 	newproc -> PID = nextPID();
 	//will need to change this thing later
-	newproc -> pageTable =allocatePhysicalPage()<<PAGESHIFT; //malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+	newproc -> pageTable =malloc(PAGE_TABLE_LEN * sizeof(struct pte));
 	newproc -> status = READY;
 	newproc -> blockedReason = 0;
 	newproc -> numTicksRemainForDelay = 0;
