@@ -37,38 +37,54 @@ extern int KernelFork(void)
 	
 	newproc -> PID = nextPID();
 	/* Find a new page table */
-	TracePrintf(100, "[Kernel Fork] try to allocate a new page table.\n");
-	struct pte *temp = KernelPageTable + VMEM_1_SIZE/PAGESIZE -2-cur_index;
-	temp->valid = 1;
-	temp->uprot = 0;
-	temp->kprot = PROT_READ | PROT_WRITE;//set access for the kernel
-	if(current_pfn == 0){//we don't have a pfn existing that we can use the rest half
-	  temp->pfn = allocatePhysicalPage();
-	  current_pfn = temp->pfn;
-	  newproc->pageTable = (struct pte*)((temp->pfn)*PAGESIZE);
-	}else{//we have an existing pfn, we can use the upper half
-	  temp->pfn = current_pfn;
-	  offset = PAGE_TABLE_LEN;//offset
-	  newproc->pageTable = (struct pte*)((temp->pfn)*PAGESIZE + PAGE_TABLE_SIZE);
-	 // cur_index ++;
-	}
-	//map the table
-	struct pte* entry = (struct pte *)(VMEM_1_LIMIT-(2+cur_index)*PAGESIZE);
-	int i;
-	for(i=0; i<VMEM_0_SIZE/PAGESIZE; i++){
-	  // struct pte new_entry;
-	  if((i<<PAGESHIFT)>=KERNEL_STACK_BASE){//this is kernel stack pages
-	    ((struct pte*)(entry+i+offset))->valid = 1;
-	    ((struct pte*)(entry+i+offset))->uprot = 0;
-	    ((struct pte*)(entry+i+offset))->kprot = PROT_READ | PROT_WRITE;
-	   
-	  }else{
-	    ((struct pte*)(entry+i+offset))->valid = 0;
-	  }
-	}
-	if(offset==PAGE_TABLE_LEN){
-		cur_index++;
-	}
+//	TracePrintf(100, "[Kernel Fork] try to allocate a new page table.\n");
+//	struct pte *temp = KernelPageTable + VMEM_1_SIZE/PAGESIZE -2-cur_index;
+//	temp->valid = 1;
+//	temp->uprot = 0;
+//	temp->kprot = PROT_READ | PROT_WRITE;//set access for the kernel
+//	if(current_pfn == 0){//we don't have a pfn existing that we can use the rest half
+//	  temp->pfn = allocatePhysicalPage();
+//	  current_pfn = temp->pfn;
+//	  newproc->pageTable = (struct pte*)((temp->pfn)*PAGESIZE);
+//	}else{//we have an existing pfn, we can use the upper half
+//	  temp->pfn = current_pfn;
+//	  offset = PAGE_TABLE_LEN;//offset
+//	  newproc->pageTable = (struct pte*)((temp->pfn)*PAGESIZE + PAGE_TABLE_SIZE);
+//	 // cur_index ++;
+//	}
+//	//map the table
+//	struct pte* entry = (struct pte *)(VMEM_1_LIMIT-(2+cur_index)*PAGESIZE);
+//	int i;
+//	for(i=0; i<VMEM_0_SIZE/PAGESIZE; i++){
+//	  // struct pte new_entry;
+//	  if((i<<PAGESHIFT)>=KERNEL_STACK_BASE){//this is kernel stack pages
+//	    ((struct pte*)(entry+i+offset))->valid = 1;
+//	    ((struct pte*)(entry+i+offset))->uprot = 0;
+//	    ((struct pte*)(entry+i+offset))->kprot = PROT_READ | PROT_WRITE;
+//	   
+//	  }else{
+//	    ((struct pte*)(entry+i+offset))->valid = 0;
+//	  }
+//	}
+//	if(offset==PAGE_TABLE_LEN){
+//		cur_index++;
+//	}
+//
+	TracePrintf(100, "[Kernel Fork]: Try to allocate a new page table\n");
+	int vpn = 511;
+	struct pte *kernelPTE = &KernelPageTable[vpn];
+	kernelPTE -> valid = 1;
+	kernelPTE -> uprot = PROT_NONE;
+	kernelPTE -> kprot = PROT_READ | PROT_WRITE;
+	kernelPTE -> pfn = allocatePhysicalPage();
+	printKernelPageTable(100);
+
+	struct pte *newUserPageTable;
+	long newPageTableAddr = 1023 << PAGESHIFT;
+	newUserPageTable = newPageTableAddr;
+	TracePrintf(100, "[Kernel Fork]: New Page Table: %d %d\n", newPageTableAddr, newUserPageTable); 
+	memcpy(newUserPageTable, active_process -> pageTable, sizeof(struct pte) * PAGE_TABLE_LEN);
+	newproc -> pageTable = newUserPageTable;
 	//will need to change this thing later
 	//	newproc -> pageTable = //forkTBL[0];//malloc(PAGE_TABLE_LEN * sizeof(struct pte));
 	newproc -> status = READY;
@@ -78,6 +94,7 @@ extern int KernelFork(void)
 	newproc -> child = NULL;
 	newproc -> prevSibling = NULL;
 	newproc -> nextSibling = NULL;
+	TracePrintf(100, "[Kernel Fork]: New PCB: PID(%d), PageTable(%d)\n", newproc -> PID, newproc -> pageTable); 
 
 	//printf("[KernelFork] context switching\n");
 	TracePrintf(100, "Fork enter context switch\n");

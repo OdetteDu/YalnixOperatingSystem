@@ -177,7 +177,14 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
 	// WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
 	//memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
 	UserPageTable = table2;
-	WriteRegister(REG_PTR0, (RCS421RegVal)table2);
+	printUserPageTable(100);
+	long vpn = ((long)table2 & PAGEMASK) >> PAGESHIFT; 
+	int pfn = KernelPageTable[vpn-512].pfn;
+	long offset = (long)table2 & PAGEOFFSET;
+	long addrUP = pfn << PAGESHIFT;
+	long addr = addrUP + offset;
+	TracePrintf(100, "table2: %d, vpn: %d, pfn: %d, offset: %d, addrUP: %d, addr: %d\n", table2, vpn, pfn, offset, addrUP, addr);
+	WriteRegister(REG_PTR0, (RCS421RegVal)addr);
 	// memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
 	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
 	// memcpy(UserPageTable, table2, PAGE_TABLE_LEN);

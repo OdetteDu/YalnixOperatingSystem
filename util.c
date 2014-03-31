@@ -155,7 +155,7 @@ extern void printUserPageTable(int level)
 	int index;
 	for(index = 0; index < PAGE_TABLE_LEN; index++)
 	{
-		TracePrintf(level, "%d: valid(%d), pfn(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn);
+		TracePrintf(level, "%d: valid(%d), pfn(%d), kprot(%d), uprot(%d)\n", index, UserPageTable[index].valid, UserPageTable[index].pfn, UserPageTable[index].kprot, UserPageTable[index].uprot);
 	}
 }
 
