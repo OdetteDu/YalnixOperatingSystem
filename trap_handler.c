@@ -30,7 +30,8 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
     exceptionStackFrame->regs[0] = KernelFork();
     break;
   case YALNIX_EXEC:
-    KernelExec((char *)exceptionStackFrame->regs[1], (char **)exceptionStackFrame->regs[2], exceptionStackFrame);
+    exceptionStackFrame->regs[0]=KernelExec((char *)exceptionStackFrame->regs[1], (char **)exceptionStackFrame->regs[2], exceptionStackFrame);
+    break;
   case YALNIX_EXIT:
     KernelExit((int)exceptionStackFrame->regs[1]);
     break;
@@ -42,6 +43,7 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
     break;
   case YALNIX_DELAY:
     exceptionStackFrame->regs[0] = KernelDelay((int)exceptionStackFrame->regs[1]);
+    break;
   case YALNIX_TTY_READ:
     break;
   case YALNIX_TTY_WRITE:
@@ -192,11 +194,40 @@ extern void trapIllegal(ExceptionStackFrame *exceptionStackFrame)
 
 extern void trapMemory(ExceptionStackFrame *exceptionStackFrame)
 {
-  TracePrintf(512, "trapMemory: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n",
-	      exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
-	      exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
-	      exceptionStackFrame->regs);
-    
+	TracePrintf(512, "trapMemory: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n",
+			exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
+			exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
+			exceptionStackFrame->regs);
+
+	if( exceptionStackFrame -> addr > active_process -> stack_brk )
+	{
+		TracePrintf(0, "Trap Memory Error: PID: %d, addr: %d is large than stack_brk: %d\n", active_process -> PID, exceptionStackFrame -> addr, active_process -> stack_brk);
+		//Exit;
+		KernelExit(ERROR);
+	}
+
+	if( exceptionStackFrame -> addr < UP_TO_PAGE( active_process -> heap_brk) + PAGESIZE )
+	{
+		TracePrintf(0, "Trap Memory Error: PID: %d, addr: %d is smaller than heap_brk: %d\n", active_process -> PID, exceptionStackFrame -> addr, active_process -> heap_brk);
+		//Exit;
+		KernelExit(ERROR);
+	}
+
+	long userTablePTE;
+	TracePrintf(510, "Moving user stack down to address: %d (%d)\n", exceptionStackFrame -> addr, (long)exceptionStackFrame -> addr >> PAGESHIFT);
+	for (userTablePTE = (DOWN_TO_PAGE(exceptionStackFrame -> addr)); userTablePTE <= (DOWN_TO_PAGE(active_process -> stack_brk)); userTablePTE += PAGESIZE)
+	{
+		unsigned int i = ((userTablePTE) >> PAGESHIFT) % PAGE_TABLE_LEN;
+		UserPageTable[i].valid = 1;
+		UserPageTable[i].uprot = PROT_READ | PROT_WRITE;
+		UserPageTable[i].kprot = PROT_READ | PROT_WRITE;
+		/* Need to change the pfn here */
+		//need to check if there are enough physical pages
+		UserPageTable[i].pfn = allocatePhysicalPage();
+		TracePrintf(250, "Allocate physical pages for user process: PID(%d), VPN(%d), PFN(%d).\n", active_process -> PID, i, UserPageTable[i].pfn);
+	}
+
+    WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
 }
 
 extern void trapMath(ExceptionStackFrame *exceptionStackFrame)

@@ -76,7 +76,7 @@ struct exitStatusQ{
 	int exitStatus;
 	int PID;
 	struct exitStatusQ* next;
-}
+};
 
 extern struct queue *waitingQHead, *waitingQTail;
 extern struct queue *readyQHead, *readyQTail;

@@ -218,14 +218,59 @@ extern int KernelWait(int *status_ptr)
 extern int KernelGetPid(void)
 {
   TracePrintf(256, "GetPid\n");
-  return 0;
+  return active_process->PID;
 }
 
 extern int KernelBrk(void *addr)
 {
-  TracePrintf(256, "Brk: addr(%d)\n", addr);
-  return 0;
+	TracePrintf(256, "Brk: addr(%d)\n", addr);
+
+	//check if the addr is illegal
+	if(addr < MEM_INVALID_SIZE)
+	{
+		TracePrintf(0, "Error in KernelBrk: Trying to set the brk below MEM_INVALID_SIZE.\n");
+		//Exit the program.
+		return ERROR;
+	}
+
+	if(addr > DOWN_TO_PAGE(active_process -> stack_brk) - PAGESIZE)
+	{
+		TracePrintf(0, "Error in KernelBrk: Trying to set the brk inside or above the red zone.\n");
+		return ERROR;
+	}
+
+	unsigned int userTablePTE;
+	//Only allocate for entire pages??
+	unsigned int gap = (UP_TO_PAGE(addr)-UP_TO_PAGE(active_process -> heap_brk));
+	if(gap>0)
+	{
+		TracePrintf(250, "Moving user brk up to address: %d (%d)\n", addr, (long)addr >> PAGESHIFT);
+		for (userTablePTE = (UP_TO_PAGE(active_process -> heap_brk)); userTablePTE < (UP_TO_PAGE(addr)); userTablePTE += PAGESIZE)
+		{
+			unsigned int i = ((userTablePTE) >> PAGESHIFT) % PAGE_TABLE_LEN;
+			UserPageTable[i].valid = 1;
+			UserPageTable[i].uprot = PROT_READ | PROT_WRITE; 
+			UserPageTable[i].kprot = PROT_READ | PROT_WRITE;
+			/* Need to change the pfn here */
+			UserPageTable[i].pfn = allocatePhysicalPage();
+			TracePrintf(250, "Allocate physical pages for user process: PID(%d), VPN(%d), PFN(%d).\n", active_process -> PID, i, UserPageTable[i].pfn);
+		}
+	}
+	else if (gap<0)
+	{
+		TracePrintf(250, "Moving user brk down to address: %d (%d)\n", addr, (long)addr >> PAGESHIFT);
+		for ( userTablePTE = (UP_TO_PAGE(addr)); userTablePTE < (UP_TO_PAGE(active_process -> heap_brk)); userTablePTE += PAGESIZE)
+		{
+			unsigned int i =((userTablePTE) >> PAGESHIFT) % PAGE_TABLE_LEN;
+			UserPageTable[i].valid = 0;
+			freePhysicalPage(KernelPageTable[i].pfn);
+		}
+	}
+
+	active_process -> heap_brk = addr;
+	return 0;
 }
+
 
 extern int KernelDelay(int clock_ticks)
 {
