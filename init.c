@@ -6,7 +6,8 @@ int
 main()
 {
 	while(1){
-	 // TracePrintf(0, "*****Init****\n");
-	  //printf("I'm in init!\n");
+	 TracePrintf(0, "*****Init****\n");
+	 printf("I'm in init!\n");
+	 Pause();
 	}
 }

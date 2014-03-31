@@ -33,8 +33,13 @@ void *new_brk;
 //Page Tables
 struct pte *KernelPageTable;
 struct pte *UserPageTable;
-struct pte *InitPageTable; //temperary measure
-struct pte *IdlePageTable; //this is because I failed to physically allocate page table
+struct pte *InitPageTable;
+struct pte *IdlePageTable;
+//[PAGE_TABLE_LEN]; //this is because I failed to physically allocate page table
+struct pte myKernelPageTable[PAGE_TABLE_LEN];
+struct pte myUserPageTable[PAGE_TABLE_LEN];
+struct pte myInitPageTable[PAGE_TABLE_LEN];
+struct pte myIdlePageTable[PAGE_TABLE_LEN];
 
 //physical pages
 struct PhysicalPageNode *physicalPageNodeHead;
@@ -78,17 +83,22 @@ extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
   //check if p2 is null
   if(!p2){
     return &(((struct PCBNode*)p1)->ctxp);
-  }
-  printUserPageTable(2000);
+    }
+  //printUserPageTable(2000);
+  // WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+  // memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
+  //WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+  // memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
+  // WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+  //printUserPageTable(2000);
+  //  memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
+  UserPageTable = table2;
+  WriteRegister(REG_PTR0, (RCS421RegVal)table2);
   WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-  memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
-  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-  memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
-  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-  printUserPageTable(2000);
   ((struct PCBNode*)p2)->status = ACTIVE;
+  ((struct PCBNode*)p1)->status = READY;
   active_process = p2;
-  memcpy(&(((struct PCBNode*)p2)->ctxp), ctxp, sizeof(SavedContext));
+  memcpy(&(((struct PCBNode*)p1)->ctxp), ctxp, sizeof(SavedContext));
   //TODO: put p1 in ready queue
   struct queue* pcb1;//should check for if p1 is idle here ..
   pcb1->proc = ((struct PCBNode*)p1);
@@ -112,7 +122,7 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
   struct pte *table2 = ((struct PCBNode*)p2)->pageTable;
   
   unsigned int i;
-  unsigned int *buffer[PAGE_TABLE_LEN];
+  uint64_t *buffer[PAGE_TABLE_LEN];
   
   TracePrintf(256, "[Debug] Enter forkSwitch:\n");
   /* Copy all valid pages from the UserPageTable
@@ -121,7 +131,7 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
  
   //printf("check if table2 is allocated table2[0] = %d\n", table2[0]);
   for(i=0; i<PAGE_TABLE_LEN;i++){
-    table2[i].valid = table2[i].valid;
+    table2[i].valid = UserPageTable[i].valid;
     if(UserPageTable[i].valid){//allow for full access in new table first
       table2[i].kprot = PROT_READ | PROT_WRITE;
       table2[i].uprot = PROT_NONE;
@@ -130,12 +140,15 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
       memcpy(buffer[i], (uint64_t *)(i<<PAGESHIFT), PAGESIZE);
     }
   }
-  printUserPageTable(1024);
+  //printUserPageTable(1024);
   //swap region0 now;
+  // WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+  //memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
+  UserPageTable = table2;
+  WriteRegister(REG_PTR0, (RCS421RegVal)table2);
+  // memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
   WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-  memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
-  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-  memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
+  // memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
    
   
   // WriteRegister(REG_PTR0, (RCS421RegVal)UserPageTable);
@@ -154,12 +167,12 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
       UserPageTable[i].uprot = PROT_NONE;
     }
   }
-  printUserPageTable(1024);
+  //printUserPageTable(1024);
 
   memcpy(&(((struct PCBNode*)p2)->ctxp), ctxp, sizeof(SavedContext));
   WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
   active_process = p2;
-  /* Maintain the parent/children part??/ */
+  /* Maintain the parent/children part??*/
   struct queue* child = {p2, 0};
   if(((struct PCBNode*)p1)->children == 0){
     ((struct PCBNode*)p1)->children = child; 
@@ -284,7 +297,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
     }
 	
   //allocate kernelpagetable
-  KernelPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+  KernelPageTable =myKernelPageTable;// malloc(PAGE_TABLE_LEN * sizeof(struct pte));
   //initialize the page Table
   for( index = 0; index < PAGE_TABLE_LEN; index++ )
     {
@@ -298,7 +311,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   TracePrintf(2048, "KernelPageTable: Address: %d, PAGE_TABLE_LEN: %d, KernelPageTable Size: %d\n", KernelPageTable, PAGE_TABLE_LEN, sizeof(KernelPageTable));
 
   //allocate userpagetable
-  UserPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+  UserPageTable = myUserPageTable;//malloc(PAGE_TABLE_LEN * sizeof(struct pte));
   for( index = 0; index < PAGE_TABLE_LEN; index++ )
     {
       struct pte PTE;
@@ -311,9 +324,9 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
   TracePrintf(2048, "UserPageTable: Address: %d, PAGE_TABLE_LEN: %d, UserPageTable Size: %d\n", UserPageTable, PAGE_TABLE_LEN, sizeof(UserPageTable));
 
   //allocate initpage table
-  InitPageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
-  IdlePageTable = malloc(PAGE_TABLE_LEN * sizeof(struct pte));
-  for( index = 0; index < PAGE_TABLE_LEN; index++ )
+  InitPageTable = myInitPageTable;//malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+  IdlePageTable = myIdlePageTable;//malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+  /*for( index = 0; index < PAGE_TABLE_LEN; index++ )
     {
       struct pte PTE;
       PTE.valid = 0;
@@ -321,7 +334,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
       PTE.uprot = PROT_NONE;
       PTE.kprot = PROT_NONE;
       InitPageTable[index] = PTE;
-    }
+      }*/
   TracePrintf(2048, "InitPageTable: Address: %d, PAGE_TABLE_LEN: %d, InitPageTable Size: %d\n", InitPageTable, PAGE_TABLE_LEN, sizeof(InitPageTable));
 
   TracePrintf(2000, "KERNEL_STACK_BASE: %d (%d), KERNEL_STACK_LIMIT: %d (%d), KERNEL_STACK_PAGES: %d, KERNEL_STACK_SIZE: %d, USER_STACK_LIMIT: %d (%d)\n", KERNEL_STACK_BASE, KERNEL_STACK_BASE >> PAGESHIFT, KERNEL_STACK_LIMIT, KERNEL_STACK_LIMIT >> PAGESHIFT, KERNEL_STACK_PAGES, KERNEL_STACK_SIZE, USER_STACK_LIMIT, USER_STACK_LIMIT >> PAGESHIFT);
@@ -438,7 +451,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
     idle = (struct PCBNode *)malloc(sizeof(struct PCBNode));
     idle -> PID = 0;
     idle -> status = READY;
-    idle -> pageTable = IdlePageTable;
+    idle -> pageTable = myUserPageTable;
     idle -> isActive = 1;
     idle -> blockedReason = 0;
     idle -> numTicksRemainForDelay = 0;
@@ -462,12 +475,12 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
     current -> nextSibling = NULL;
     init = current;
   
-    // ContextSwitch(forkSwitchFunc, &(idle->ctxp), idle, init);
+    ContextSwitch(forkSwitchFunc, &(active_process->ctxp), active_process, init);
     TracePrintf(512, "[Debug] Context switched from idle to init");
     // LoadProgram("trapmath.c", cmd_args, frame);
     //LoadProgram("forktest0", cmd_args, frame);
     if(count == 0){
-      // LoadProgram("init", cmd_args, frame);
+      LoadProgram("init", cmd_args, frame);
     count =1;
     }
     //count = 1;

@@ -134,10 +134,10 @@ extern int KernelExit(int status)
 	    }
 	  }
 	  
-	  struct PCBNode* nextReady;
+	  /* struct PCBNode* nextReady;
 	  if(readyQHead==0){ nextReady = idle;}
 	  else{ nextReady = popQHead(readyQHead);}
-	  ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, nextReady);
+	  ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, nextReady);*/
 	  
 	}
 	
