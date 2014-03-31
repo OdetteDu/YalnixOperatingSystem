@@ -3,51 +3,30 @@
 #include <stdio.h>
 //int a = 5, c = 15;
 
-int main()
-{
-//	while(1)
-//	{
-//		TracePrintf(0, "*****Init****\nMy PID is: %d.\n", GetPid());
-//	  //printf("I'm in init!\n");
-//	}
-//		int b = 10, d = 20;
-//		int i;
-
-//		TracePrintf(2, "init!\n");
-//		TracePrintf(2, "init: main %p\n", main);
+//int main()
+//{
+//	char *new;
+//    new = malloc(100000);
 //
-//		for (i = 0; i < 20; i++)
-//		TracePrintf(2, "pid %d\n", GetPid());
+//    Exit(0);//	
+//}
 
+void
+force(char *addr)
+{
+    *addr = 42;
+}
 
-//	while(1)
-//	{
-//		  Pause();
-void *currbreak;
-    char *new;
+int
+main()
+{
+    char big_buffer[20*1024];
+    int foo;
+    int i;
 
-    currbreak = sbrk(0);
+    foo = 42;
+    for (i = 0; i < sizeof(big_buffer); i++)
+force(big_buffer + i);
 
-    fprintf(stderr, "sbrk(0) = %p\n", currbreak);
-
-    currbreak = (void *)UP_TO_PAGE(currbreak);
-    currbreak++;
-    currbreak = (void *)UP_TO_PAGE(currbreak);
-
-    if (Brk(currbreak)) {
-fprintf(stderr, "Brk %p returned error\n", currbreak);
-Exit(1);
-    }
-
-    currbreak++;
-    currbreak = (void *)UP_TO_PAGE(currbreak);
-
-    if (Brk(currbreak)) {
-fprintf(stderr, "Brk %p returned error\n", currbreak);
-Exit(1);
-    }
-
-    new = malloc(10000);
-
-    Exit(0);//	
+    Exit(0);
 }

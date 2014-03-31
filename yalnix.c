@@ -225,6 +225,7 @@ extern int SetKernelBrk(void *addr)
       }
     }
     new_brk = addr;//finally, set the address to the new break
+  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_1);
   }else{// this is when virtual memory is not declared.
 
     TracePrintf(1020, "Set Kernel Brk Called: addr >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n", (long)addr >> PAGESHIFT, UP_TO_PAGE(addr), UP_TO_PAGE(addr) >> PAGESHIFT, DOWN_TO_PAGE(addr), DOWN_TO_PAGE(addr) >> PAGESHIFT);
@@ -244,7 +245,6 @@ extern int SetKernelBrk(void *addr)
 
   }
   TracePrintf(0, "finish set kernel brk!\n");	
-  WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_1);
   return 0;
 }
 

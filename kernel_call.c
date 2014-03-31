@@ -221,7 +221,7 @@ extern int KernelBrk(void *addr)
 		{
 			unsigned int i = ((userTablePTE) >> PAGESHIFT) % PAGE_TABLE_LEN;
 			UserPageTable[i].valid = 1;
-			UserPageTable[i].uprot = PROT_NONE;
+			UserPageTable[i].uprot = PROT_READ | PROT_WRITE; 
 			UserPageTable[i].kprot = PROT_READ | PROT_WRITE;
 			/* Need to change the pfn here */
 			UserPageTable[i].pfn = allocatePhysicalPage();
