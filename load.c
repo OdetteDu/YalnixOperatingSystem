@@ -257,8 +257,8 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 	TracePrintf(1536, "[LoadProgram] Initialize data and bss pages\n");
 	printUserPageTable(1920);
 	active_process -> heap_brk = (index << PAGESHIFT) - 1;
-//	TracePrintf(500, "PCB: heap_brk: %d (%d), stack_brk: %d (%d)\n", active_process -> heap_brk, active_process -> heap_brk >> PAGESHIFT, active_process -> stack_brk, active_process -> stack_brk >> PAGESHIFT);
-//
+	TracePrintf(500, "PCB: heap_brk: %d (%d), stack_brk: %d (%d)\n", active_process -> heap_brk, active_process -> heap_brk >> PAGESHIFT, active_process -> stack_brk, active_process -> stack_brk >> PAGESHIFT);
+
 	/* And finally the user stack pages */
 	/*
     >>>> For stack_npg number of PTEs in the Region 0 page table
@@ -282,8 +282,8 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame)
 	TracePrintf(1536, "Initialize stack pages\n");
 	printUserPageTable(1920);
 
-//	active_process -> stack_brk = (index << PAGESHIFT) + 1;
-//	TracePrintf(500, "PCB: heap_brk: %d (%d), stack_brk: %d (%d)\n", active_process -> heap_brk, active_process -> heap_brk >> PAGESHIFT, active_process -> stack_brk, active_process -> stack_brk >> PAGESHIFT);
+	active_process -> stack_brk = (index << PAGESHIFT) + 1;
+	TracePrintf(500, "PCB: heap_brk: %d (%d), stack_brk: %d (%d)\n", active_process -> heap_brk, active_process -> heap_brk >> PAGESHIFT, active_process -> stack_brk, active_process -> stack_brk >> PAGESHIFT);
 //
 
 

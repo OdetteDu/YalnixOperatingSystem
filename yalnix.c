@@ -490,8 +490,8 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	idle -> child = NULL;
 	idle -> prevSibling = NULL;
 	idle -> nextSibling = NULL;
-	LoadProgram("idle", cmd_args, frame);//need to set the stack_brk and heap_brk in LoadProgram
 	active_process = idle;
+	LoadProgram("idle", cmd_args, frame);//need to set the stack_brk and heap_brk in LoadProgram
 
 	struct PCBNode* current;
 	current = (struct PCBNode *)malloc(sizeof(struct PCBNode));
