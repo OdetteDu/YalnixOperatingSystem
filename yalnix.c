@@ -92,7 +92,14 @@ extern SavedContext *delaySwitchFunc(SavedContext *ctxp, void* p1, void* p2)
 	}
 
 	UserPageTable = table2;
-	WriteRegister(REG_PTR0, (RCS421RegVal)table2);
+	printUserPageTable(100);
+	long vpn = ((long)table2 & PAGEMASK) >> PAGESHIFT; 
+	int pfn = KernelPageTable[vpn-512].pfn;
+	long offset = (long)table2 & PAGEOFFSET;
+	long addrUP = pfn << PAGESHIFT;
+	long addr = addrUP + offset;
+	TracePrintf(100, "table2: %d, vpn: %d, pfn: %d, offset: %d, addrUP: %d, addr: %d\n", table2, vpn, pfn, offset, addrUP, addr);
+	WriteRegister(REG_PTR0, (RCS421RegVal)addr);
 	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
 	((struct PCBNode*)p2)->status = ACTIVE;
 	((struct PCBNode*)p1)->status = READY;
