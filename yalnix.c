@@ -523,7 +523,14 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
 	if(count == 0)
 	{
-		LoadProgram("init", cmd_args, frame);
+		if(cmd_args[0] == NULL)
+		{
+			LoadProgram("init", cmd_args, frame);
+		}
+		else
+		{
+			LoadProgram(cmd_args[0], cmd_args, frame);
+		}
 		count =1;
 	}
 
