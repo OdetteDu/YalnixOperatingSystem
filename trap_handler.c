@@ -18,16 +18,15 @@ extern struct queue *delayQueueHead, *delayQueueTail;
 
 extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 {
-
 	TracePrintf(512, "trapKernel: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n",
 			exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 			exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 			exceptionStackFrame->regs);
+
 	int temp = 0;
 	switch(exceptionStackFrame->code)
 	{
 	case YALNIX_FORK:
-		TracePrintf(0, "calling kernel Fork()");
 		exceptionStackFrame->regs[0] = KernelFork();
 		break;
 	case YALNIX_EXEC:
@@ -64,26 +63,6 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 			exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 			exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 			exceptionStackFrame->regs);
-	/*
-    if(clockCount == 5){
-    if(active_process->PID == 0)
-    {
-
-    //	//TracePrintf(510, "Waiting for the next trap clock to do context switch\n");
-    ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process,init); 
-    TracePrintf(510, "Trap_clock: switch from idle to init\n");
-    }
-    else if (active_process->PID == 1)
-    {
-
-    ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
-    TracePrintf(510, "Trap_clock: switch from init to idle\n");
-
-    }
-    clockCount = 0;
-    }else{
-    clockCount ++;
-    }*/
 
 	struct queue* previous = NULL;
 	struct queue *current = delayQueueHead;
@@ -91,37 +70,49 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	{
 		struct PCBNode *currentPCB = current -> proc;
 		(currentPCB -> numTicksRemainForDelay) --;
-		if(currentPCB -> numTicksRemainForDelay == 0){
+		if(currentPCB -> numTicksRemainForDelay == 0)
+		{
 			currentPCB->status = READY;
 			//remove that specific PCB from delayQueue
 			//addToQEnd(currentPCB, readyQueueTail);
-			if(previous==NULL){//when current is the head of the list
+			if(previous==NULL)
+			{//when current is the head of the list
 				previous = current;
 				delayQueueHead = current->next;
 				//push to readyQ
-				if(readyQHead == NULL){
+				if(readyQHead == NULL)
+				{
 					readyQHead = previous;
 					readyQTail = previous;
-				}else{
+				}
+				else
+				{
 					readyQTail->next = previous;
 					readyQTail = previous;
 				}//pushed
 				previous = NULL;
 				current = delayQueueHead;
 
-			}else{//when current is not head of things
+			}
+			else
+			{//when current is not head of things
 				previous->next = current->next;
 				//push to readyQ
-				if(readyQHead == NULL){
+				if(readyQHead == NULL)
+				{
 					readyQHead = current;
 					readyQTail = current;
-				}else{
+				}
+				else
+				{
 					readyQTail->next = current;
 					readyQTail = current;
 				}//pushed
 				current = previous->next;
 			}//end-of-remove-from-delay-queue
-		}else{
+		}
+		else
+		{
 			previous = current;
 			current = current->next;
 		}
@@ -130,7 +121,8 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	if(clockTick >= 1)
 	{
 
-		if(readyQHead != NULL){
+		if(readyQHead != NULL)
+		{
 			printf("We are poping ready Q head right now!\n");
 			struct queue* head = readyQHead;
 			struct PCBNode* p2 = head->proc;
@@ -139,13 +131,15 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 
 			printf("We poped out PID %d\n", p2->PID);
 			if(readyQHead == NULL) readyQTail = NULL;
-			//	printf("Now the ready queue head is%d\n", (p2->proc)->PID);
 			ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, p2);
 			printf("Now the ready queue head is%d\n", (readyQHead->proc)->PID);
 			clockTick = 0;
 			TracePrintf(256, "Trap_clock: switch from pid1: %d to pid2: %d\n", active_process->PID, p2->PID);
-		}else{
-			if(active_process!= idle){
+		}
+		else
+		{
+			if(active_process!= idle)
+			{
 				printf("We are just switching to idle!\n");
 				ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
 				clockTick = 0;
@@ -154,13 +148,11 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 
 		}
 		clockTick = 0;
-
 	}
 	else
 	{
 		clockTick ++;
 	}
-
 }
 
 extern void trapIllegal(ExceptionStackFrame *exceptionStackFrame)
@@ -169,6 +161,7 @@ extern void trapIllegal(ExceptionStackFrame *exceptionStackFrame)
 			exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 			exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 			exceptionStackFrame->regs);
+
 	int code = exceptionStackFrame->code;
 	char string[128];
 	char* msg = string;
@@ -193,7 +186,6 @@ extern void trapIllegal(ExceptionStackFrame *exceptionStackFrame)
 		printf(msg, "Unknown code 0x%x", code);
 
 	KernelExit(ERROR);
-	//printf(msg);
 }
 
 extern void trapMemory(ExceptionStackFrame *exceptionStackFrame)
@@ -206,14 +198,12 @@ extern void trapMemory(ExceptionStackFrame *exceptionStackFrame)
 	if( exceptionStackFrame -> addr > active_process -> stack_brk )
 	{
 		TracePrintf(0, "Trap Memory Error: PID: %d, addr: %d is large than stack_brk: %d\n", active_process -> PID, exceptionStackFrame -> addr, active_process -> stack_brk);
-		//Exit;
 		KernelExit(ERROR);
 	}
 
 	if( exceptionStackFrame -> addr < UP_TO_PAGE( active_process -> heap_brk) + PAGESIZE )
 	{
-		TracePrintf(0, "Trap Memory Error: PID: %d, addr: %d is smaller than heap_brk: %d\n", active_process -> PID, exceptionStackFrame -> addr, active_process -> heap_brk);
-		//Exit;
+		TracePrintf(0, "Trap Memory Error: PID: %d, addr: %d is smaller than heap_brk: %d\n", active_process -> PID, exceptionStackFrame -> addr, active_process -> heap_brk);;
 		KernelExit(ERROR);
 	}
 
@@ -234,14 +224,14 @@ extern void trapMemory(ExceptionStackFrame *exceptionStackFrame)
 
 extern void trapMath(ExceptionStackFrame *exceptionStackFrame)
 {
-
 	TracePrintf(512, "trapMath: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n",
 			exceptionStackFrame->vector, exceptionStackFrame->code, exceptionStackFrame->addr,
 			exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 			exceptionStackFrame->regs);
 	char string[128];
 	char *msg = string;
-	switch (exceptionStackFrame->code) {
+	switch (exceptionStackFrame->code)
+	{
 	case FPE_INTOVF:
 		msg = "Integer overflow";
 		break;
@@ -291,17 +281,16 @@ extern void trapTTYTransmit(ExceptionStackFrame *exceptionStackFrame)
 	//addToQEnd(popTTYQHead(TTYWriteQueueHead), readyQueueTail);
 	//How to know which terminal is this?
 
-//	if(TTYWriteQueueHead != NULL)
-//	{
-//		TtyTransmit(tty_id, TTYWriteQueueHead -> buffer, TTYWriteQueueHead -> length);
-//	}
-//	else
-//	{
-//		isTerminalBusy[tty_id] = 0;
-//		TTYWriteQueueHead = NULL;
-//		TTYWriteQueueTail = NULL;
-//	}
-
+	//	if(TTYWriteQueueHead != NULL)
+	//	{
+	//		TtyTransmit(tty_id, TTYWriteQueueHead -> buffer, TTYWriteQueueHead -> length);
+	//	}
+	//	else
+	//	{
+	//		isTerminalBusy[tty_id] = 0;
+	//		TTYWriteQueueHead = NULL;
+	//		TTYWriteQueueTail = NULL;
+	//	}
 }
 
 

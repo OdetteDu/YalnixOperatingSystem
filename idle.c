@@ -6,8 +6,6 @@ int main(int argc, char **argv)
 {
 	while(1)
 	{	
-		printf("I'm in idle now!\n");
 		Pause();
-		//Exit(99);
 	}
 }

@@ -12,8 +12,9 @@
 #include "kernel_call.h"
 #include "util.h"
 
-unsigned int count = 0;
 /* Initlize variables */
+unsigned int count = 0;
+
 //physical pages
 int numPhysicalPagesLeft;
 struct PhysicalPageNode *physicalPageNodeHead;
@@ -35,19 +36,10 @@ struct pte *KernelPageTable;
 struct pte *UserPageTable;
 struct pte *InitPageTable;
 struct pte *IdlePageTable;
-//[PAGE_TABLE_LEN]; //this is because I failed to physically allocate page table
 struct pte myKernelPageTable[PAGE_TABLE_LEN];
 struct pte myUserPageTable[PAGE_TABLE_LEN];
 struct pte myInitPageTable[PAGE_TABLE_LEN];
 struct pte myIdlePageTable[PAGE_TABLE_LEN];
-/*
-struct pte fork1[PAGE_TABLE_LEN];
-struct pte fork2[PAGE_TABLE_LEN];
-struct pte fork3[PAGE_TABLE_LEN];
-struct pte fork4[PAGE_TABLE_LEN];
-struct pte* forkTlist[4] = {fork1, fork2, fork3, fork4};
-struct pte** forkTBL = forkTlist;
-*/
 
 //physical pages
 struct PhysicalPageNode *physicalPageNodeHead;
@@ -72,8 +64,8 @@ extern int nextPID()
 	return PIDGenerator++;
 }
 
-
-extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
+extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void* p1, void* p2)
+{
 	TracePrintf(0, "[Exit Switch] Entrance \n");
 	struct pte* table2 = ((struct PCBNode*)p2)->pageTable;
 	if(p2==0){p2 = idle;}
@@ -84,17 +76,21 @@ extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
 	((struct PCBNode*)p2)->status = ACTIVE;
 	active_process = ((struct PCBNode*)p2);
 	return  &(((struct PCBNode*)p2)->ctxp);
-
 }
+
 /* Only Difference with generalSwitch is we push delay queue*/
-extern SavedContext *delaySwitchFunc(SavedContext *ctxp, void* p1, void* p2){
+extern SavedContext *delaySwitchFunc(SavedContext *ctxp, void* p1, void* p2)
+{
 	struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
 	struct pte *table2 = ((struct PCBNode*)p2)->pageTable;
 	TracePrintf(256, "[Delay Switch] Entrance\n");
+
 	//check if p2 is null
-	if(!p2){
+	if(!p2)
+	{
 		return &(((struct PCBNode*)p1)->ctxp);
 	}
+
 	UserPageTable = table2;
 	WriteRegister(REG_PTR0, (RCS421RegVal)table2);
 	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
@@ -102,29 +98,39 @@ extern SavedContext *delaySwitchFunc(SavedContext *ctxp, void* p1, void* p2){
 	((struct PCBNode*)p1)->status = READY;
 	active_process = p2;
 	memcpy(&(((struct PCBNode*)p1)->ctxp), ctxp, sizeof(SavedContext));
+
 	//TODO: put p1 in ready queue
 	struct queue* pcb1 = malloc(sizeof(struct queue));//should check for if p1 is idle here ..
 	pcb1->proc = ((struct PCBNode*)p1);
 	pcb1->next = NULL;
-	if(delayQueueHead == NULL){
+
+	if(delayQueueHead == NULL)
+	{
 		delayQueueHead = pcb1;
 		delayQueueTail = pcb1;
-	}else{
+	}
+	else
+	{
 		delayQueueTail->next = pcb1;
 		delayQueueTail = pcb1;
-	}  //printUserPageTable(2000);
+	}
+
 	printf("[DelaySwitched] from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
 	return &(((struct PCBNode*)p2)->ctxp);
 }
 
-extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
+extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2)
+{
 	struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
 	struct pte *table2 = ((struct PCBNode*)p2)->pageTable;
 	TracePrintf(256, "[General Switch] Entrance\n");
+
 	//check if p2 is null
-	if(!p2){
+	if(!p2)
+	{
 		return &(((struct PCBNode*)p1)->ctxp);
 	}
+
 	UserPageTable = table2;
 	WriteRegister(REG_PTR0, (RCS421RegVal)table2);
 	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
@@ -136,20 +142,24 @@ extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2){
 	struct queue* pcb1 = malloc(sizeof(struct queue));//should check for if p1 is idle here ..
 	pcb1->proc = ((struct PCBNode*)p1);
 	pcb1->next = NULL;
-	if(readyQHead == NULL){
+	if(readyQHead == NULL)
+	{
 		readyQHead = pcb1;
 		readyQTail = pcb1;
-	}else{
+	}
+	else
+	{
 		readyQTail->next = pcb1;
 		readyQTail = pcb1;
-	}  //printUserPageTable(2000);
+	}
 	printf("[General Switched] from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
 	return &(((struct PCBNode*)p2)->ctxp);
 }
 /**
  * @param: p1 should be the parent process and p2 should be the child
  */
-extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
+extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2)
+{
 	struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
 	struct pte *table2 = ((struct PCBNode*)p2)->pageTable;
 
@@ -162,9 +172,11 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
 	 **/
 
 	printf("check if table2 is allocated table2[0] = %d\n", table2[0]);
-	for(i=0; i<PAGE_TABLE_LEN;i++){
+	for(i=0; i<PAGE_TABLE_LEN;i++)
+	{
 		table2[i].valid = table1[i].valid;
-		if(table1[i].valid){//allow for full access in new table first
+		if(table1[i].valid)
+		{//allow for full access in new table first
 			table2[i].kprot = PROT_READ | PROT_WRITE;
 			table2[i].uprot = PROT_NONE;
 			buffer[i] = malloc(PAGESIZE);
@@ -173,9 +185,8 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
 		}
 	}
 	printUserPageTable(1024);
+
 	//swap region0 now;
-	// WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-	//memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
 	UserPageTable = table2;
 	printUserPageTable(100);
 	long vpn = ((long)table2 & PAGEMASK) >> PAGESHIFT; 
@@ -185,17 +196,16 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
 	long addr = addrUP + offset;
 	TracePrintf(100, "table2: %d, vpn: %d, pfn: %d, offset: %d, addrUP: %d, addr: %d\n", table2, vpn, pfn, offset, addrUP, addr);
 	WriteRegister(REG_PTR0, (RCS421RegVal)addr);
-	// memcpy(table1, UserPageTable, PAGE_TABLE_LEN);
 	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-	// memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
 	printUserPageTable(1024);
 
-
-	// WriteRegister(REG_PTR0, (RCS421RegVal)UserPageTable);
 	TracePrintf(256, "[Fork Switch Copy] buffer completed \n");
+
 	/* Copy back from buffer */
-	for(i=0;i<PAGE_TABLE_LEN;i++){
-		if(UserPageTable[i].valid){
+	for(i=0;i<PAGE_TABLE_LEN;i++)
+	{
+		if(UserPageTable[i].valid)
+		{
 			//allocate a new page for this pte
 			int newpfn = allocatePhysicalPage();
 			UserPageTable[i].pfn = newpfn;
@@ -207,38 +217,44 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2){
 			UserPageTable[i].uprot = table1[i].uprot;//PROT_NONE;
 		}
 	}
-	//printUserPageTable(1024);
 
 	memcpy(&(((struct PCBNode*)p2)->ctxp), ctxp, sizeof(SavedContext));
 	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
 	active_process = p2;
+
 	/* Maintain the parent/children part??*/
 	struct queue* child = malloc(sizeof(struct queue));
 	child->proc = ((struct PCBNode*)p2);
 	child->next = NULL;
-	if(((struct PCBNode*)p1)->children == 0){
+	if(((struct PCBNode*)p1)->children == 0)
+	{
 		((struct PCBNode*)p1)->children = child;
-	}else{
+	}
+	else
+	{
 		(((struct PCBNode*)p1)->children)->next = child; //put in child list
 	}
-	//((struct PCBNode*)p1)->child = p2;
+
 	((struct PCBNode*)p2)->parent = ((struct PCBNode*)p1);
 	//TODO: write a process queue and put p1 in the ready queue
 	//TODO: put p1 in ready queue
 	struct queue* pcb1 = malloc(sizeof(struct queue));//should check for if p1 is idle here ..
 	pcb1->proc = ((struct PCBNode*)p1);
 	pcb1->next = NULL;
-	if(readyQHead == 0){
+
+	if(readyQHead == 0)
+	{
 		readyQHead = pcb1;
 		readyQTail = pcb1;
-	}else{
+	}
+	else
+	{
 		readyQTail->next = pcb1;
 		readyQTail = pcb1;
 	}
 
 	printf("ForkSwitched from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
 	return &(((struct PCBNode*)p2)->ctxp);
-
 }
 
 
@@ -249,19 +265,20 @@ extern int SetKernelBrk(void *addr)
 	if(vm_enabled==1){
 
 		//if(addr>VMEM_1_LIMIT) return -1;
-		if(UP_TO_PAGE(addr) > VMEM_1_LIMIT){
+		if(UP_TO_PAGE(addr) > VMEM_1_LIMIT)
+		{
 			TracePrintf(512, "Error: Kernel heap out of memory");
 			return -1;
 		}
+
 		unsigned int kernelTablePte;
 		//Only allocate for entire pages??
 		unsigned int gap = (UP_TO_PAGE(addr)-UP_TO_PAGE(new_brk));
 		if(gap>0)
 		{
 			TracePrintf(512, "Set Kernel Brk Called: moving up to %d", addr);
-			for(kernelTablePte = (UP_TO_PAGE(new_brk));
-					kernelTablePte< (UP_TO_PAGE(addr));
-					kernelTablePte += PAGESIZE){
+			for(kernelTablePte = (UP_TO_PAGE(new_brk)); kernelTablePte< (UP_TO_PAGE(addr)); kernelTablePte += PAGESIZE)
+			{
 				unsigned int i = ((kernelTablePte)>>PAGESHIFT)%PAGE_TABLE_LEN;
 				KernelPageTable[i].valid = 1;
 				KernelPageTable[i].uprot = PROT_NONE;
@@ -274,9 +291,8 @@ extern int SetKernelBrk(void *addr)
 		else if(gap<0)
 		{
 			TracePrintf(512, "Set Kernel Brk Called: moving down ");
-			for(kernelTablePte = (UP_TO_PAGE(addr));
-					kernelTablePte <(UP_TO_PAGE(new_brk));
-					kernelTablePte+=PAGESIZE){
+			for(kernelTablePte = (UP_TO_PAGE(addr)); kernelTablePte <(UP_TO_PAGE(new_brk)); kernelTablePte+=PAGESIZE)
+			{
 				unsigned int i =((kernelTablePte)>>PAGESHIFT)%PAGE_TABLE_LEN;
 				KernelPageTable[i].valid = 0;
 				freePhysicalPage (KernelPageTable[i].pfn);
@@ -287,7 +303,6 @@ extern int SetKernelBrk(void *addr)
 	}
 	else
 	{// this is when virtual memory is not declared.
-
 		TracePrintf(1020, "Set Kernel Brk Called: addr >> PAGESHIFT: %d, UP_TO_PAGE: %d (Page:%d), DOWN_TO_PAGE:%d(Page:%d)\n", (long)addr >> PAGESHIFT, UP_TO_PAGE(addr), UP_TO_PAGE(addr) >> PAGESHIFT, DOWN_TO_PAGE(addr), DOWN_TO_PAGE(addr) >> PAGESHIFT);
 		if(new_brk == NULL)
 		{
@@ -373,22 +388,13 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 	//allocate initpage table
 	InitPageTable = myInitPageTable;//malloc(PAGE_TABLE_LEN * sizeof(struct pte));
 	IdlePageTable = myIdlePageTable;//malloc(PAGE_TABLE_LEN * sizeof(struct pte));
-	/*for( index = 0; index < PAGE_TABLE_LEN; index++ )
-    {
-      struct pte PTE;
-      PTE.valid = 0;
-      PTE.pfn = 0;
-      PTE.uprot = PROT_NONE;
-      PTE.kprot = PROT_NONE;
-      InitPageTable[index] = PTE;
-      }*/
+
 	TracePrintf(2048, "InitPageTable: Address: %d, PAGE_TABLE_LEN: %d, InitPageTable Size: %d\n", InitPageTable, PAGE_TABLE_LEN, sizeof(InitPageTable));
-
 	TracePrintf(2000, "KERNEL_STACK_BASE: %d (%d), KERNEL_STACK_LIMIT: %d (%d), KERNEL_STACK_PAGES: %d, KERNEL_STACK_SIZE: %d, USER_STACK_LIMIT: %d (%d)\n", KERNEL_STACK_BASE, KERNEL_STACK_BASE >> PAGESHIFT, KERNEL_STACK_LIMIT, KERNEL_STACK_LIMIT >> PAGESHIFT, KERNEL_STACK_PAGES, KERNEL_STACK_SIZE, USER_STACK_LIMIT, USER_STACK_LIMIT >> PAGESHIFT);
-
 	TracePrintf(2048, "KernelPageTable: %d %d %d\n", KernelPageTable, &KernelPageTable, *KernelPageTable);
 	TracePrintf(2048, "UserPageTable: %d %d %d\n", UserPageTable, &UserPageTable, *UserPageTable);
 	TracePrintf(2048, "InitPageTable: %d %d %d\n", InitPageTable, &InitPageTable, *InitPageTable);
+
 	//assign kernel to page Table
 	long etextAddr = (long)&_etext;
 	int limit;
@@ -448,11 +454,6 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
 	printUserPageTable(2044);
 
-
-	//use a linked list to store the available physica pages
-	//physicalPageNodeHead = 0;
-	//physicalPageNodeCurrent = 0;
-
 	TracePrintf(3070, "Number of physical pages available after allocate to Kernel: %d\n", numPhysicalPagesLeft);
 	numPhysicalPagesLeft = 0;
 	for(index = 0; index < numOfPagesAvailable; index++)
@@ -462,17 +463,12 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 			if(physicalPageNodeHead == NULL)
 			{
 				physicalPageNodeHead = physicalPages[index];
-
 				physicalPageNodeTail = physicalPageNodeHead;
 			}
 			else
 			{
-				// physicalPages[index] -> next = physicalPageNodeHead;
-				//physicalPageNodeHead = physicalPages[index];
-				// struct PhysicalPageNode* temp = physicalPageNodeTail;
 				physicalPageNodeTail->next = physicalPages[index];
 				physicalPageNodeTail = physicalPages[index];
-
 			}
 			numPhysicalPagesLeft++;
 			TracePrintf(1024, "Free physical page linked : index %d, pagenumber %d\n", index,
@@ -493,7 +489,7 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
 	//Running the idle process
 	TracePrintf(512, "ExceptionStackFrame: vector(%d), code(%d), addr(%d), psr(%d), pc(%d), sp(%d), regs(%s)\n", frame->vector, frame->code, frame->addr, frame->psr, frame->pc, frame->sp, frame->regs);
-	// if(count == 0){
+
 	/* build idle and init */
 	idle = (struct PCBNode *)malloc(sizeof(struct PCBNode));
 	idle -> PID = 0;
@@ -524,14 +520,12 @@ extern void KernelStart(ExceptionStackFrame *frame, unsigned int pmem_size, void
 
 	ContextSwitch(forkSwitchFunc, &(active_process->ctxp), active_process, init);
 	TracePrintf(512, "[Debug] Context switched from idle to init");
-	// LoadProgram("trapmath.c", cmd_args, frame);
-	//LoadProgram("forktest0", cmd_args, frame);
-	if(count == 0){
+
+	if(count == 0)
+	{
 		LoadProgram("init", cmd_args, frame);
 		count =1;
 	}
-	//count = 1;
-	//}
 
 	return;
 }

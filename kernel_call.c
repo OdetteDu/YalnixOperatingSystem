@@ -13,14 +13,15 @@
 extern struct PCBNode* active_process;
 extern struct queue* waitingQHead, *waitingQTail;
 extern struct queue* readyQHead, *readyQTail;
-//extern struct pte** forkTBL;
 extern struct pte *UserPageTable, *KernelPageTable;
 
-
-
+/* Func */
 extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
+
+/* Local Var */
 static int current_pfn;
 int cur_index;
+
 extern int KernelFork(void)
 {
 	TracePrintf(256, "Fork\n");
@@ -28,48 +29,14 @@ extern int KernelFork(void)
 	struct PCBNode cur_active;
 	memcpy(&cur_active, active_process, sizeof(struct PCBNode));
 	struct PCBNode* newproc;
-	
-	//if(newproc == NULL) return ERROR;
+
 	int offset = 0;
 	newproc = (struct PCBNode *)malloc(sizeof(struct PCBNode));
-	
-	if(newproc == NULL){ return ERROR;}
-	
-	newproc -> PID = nextPID();
-	/* Find a new page table */
-//	TracePrintf(100, "[Kernel Fork] try to allocate a new page table.\n");
-//	struct pte *temp = KernelPageTable + VMEM_1_SIZE/PAGESIZE -2-cur_index;
-//	temp->valid = 1;
-//	temp->uprot = 0;
-//	temp->kprot = PROT_READ | PROT_WRITE;//set access for the kernel
-//	if(current_pfn == 0){//we don't have a pfn existing that we can use the rest half
-//	  temp->pfn = allocatePhysicalPage();
-//	  current_pfn = temp->pfn;
-//	  newproc->pageTable = (struct pte*)((temp->pfn)*PAGESIZE);
-//	}else{//we have an existing pfn, we can use the upper half
-//	  temp->pfn = current_pfn;
-//	  offset = PAGE_TABLE_LEN;//offset
-//	  newproc->pageTable = (struct pte*)((temp->pfn)*PAGESIZE + PAGE_TABLE_SIZE);
-//	 // cur_index ++;
-//	}
-//	//map the table
-//	struct pte* entry = (struct pte *)(VMEM_1_LIMIT-(2+cur_index)*PAGESIZE);
-//	int i;
-//	for(i=0; i<VMEM_0_SIZE/PAGESIZE; i++){
-//	  // struct pte new_entry;
-//	  if((i<<PAGESHIFT)>=KERNEL_STACK_BASE){//this is kernel stack pages
-//	    ((struct pte*)(entry+i+offset))->valid = 1;
-//	    ((struct pte*)(entry+i+offset))->uprot = 0;
-//	    ((struct pte*)(entry+i+offset))->kprot = PROT_READ | PROT_WRITE;
-//	   
-//	  }else{
-//	    ((struct pte*)(entry+i+offset))->valid = 0;
-//	  }
-//	}
-//	if(offset==PAGE_TABLE_LEN){
-//		cur_index++;
-//	}
-//
+	if(newproc == NULL)
+	{
+		return ERROR;
+	}
+
 	TracePrintf(100, "[Kernel Fork]: Try to allocate a new page table\n");
 	int vpn = 511;
 	struct pte *kernelPTE = &KernelPageTable[vpn];
@@ -84,9 +51,9 @@ extern int KernelFork(void)
 	newUserPageTable = newPageTableAddr;
 	TracePrintf(100, "[Kernel Fork]: New Page Table: %d %d\n", newPageTableAddr, newUserPageTable); 
 	memcpy(newUserPageTable, active_process -> pageTable, sizeof(struct pte) * PAGE_TABLE_LEN);
+
 	newproc -> pageTable = newUserPageTable;
-	//will need to change this thing later
-	//	newproc -> pageTable = //forkTBL[0];//malloc(PAGE_TABLE_LEN * sizeof(struct pte));
+	newproc -> PID = nextPID();
 	newproc -> status = READY;
 	newproc -> blockedReason = 0;
 	newproc -> numTicksRemainForDelay = 0;
@@ -96,7 +63,6 @@ extern int KernelFork(void)
 	newproc -> nextSibling = NULL;
 	TracePrintf(100, "[Kernel Fork]: New PCB: PID(%d), PageTable(%d)\n", newproc -> PID, newproc -> pageTable); 
 
-	//printf("[KernelFork] context switching\n");
 	TracePrintf(100, "Fork enter context switch\n");
 	ContextSwitch(forkSwitchFunc, &(cur_active.ctxp), &cur_active, newproc);
 	TracePrintf(100, "Fork left context switch\n");
@@ -171,7 +137,7 @@ extern int KernelExit(int status)
 			//reap zombie child
 			//need more work here to keep the chain dude
 			if(prev==NULL)
-			{/**********NOT SURE WHAT THE HELL I M DOING HERE **********/
+			{/**********NOT SURE **********/
 				prev = child;
 				child = child->next;
 				free(tempchild);
@@ -265,7 +231,6 @@ extern int KernelExit(int status)
        if(readyQHead==0){ nextReady = idle;}
        else{ nextReady = popQHead(readyQHead);}
        ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, nextReady);*/
-
 	}
 
 	return 0;
@@ -332,7 +297,6 @@ extern int KernelBrk(void *addr)
 	if(addr < MEM_INVALID_SIZE)
 	{
 		TracePrintf(0, "Error in KernelBrk: Trying to set the brk below MEM_INVALID_SIZE.\n");
-		//Exit the program.
 		return ERROR;
 	}
 
@@ -343,9 +307,8 @@ extern int KernelBrk(void *addr)
 	}
 
 	unsigned int userTablePTE;
-	//Only allocate for entire pages??
 	unsigned int gap = (UP_TO_PAGE(addr)-UP_TO_PAGE(active_process -> heap_brk));
-	if(gap>0)
+	if( gap > 0 )
 	{
 		TracePrintf(250, "Moving user brk up to address: %d (%d)\n", addr, (long)addr >> PAGESHIFT);
 		for (userTablePTE = (UP_TO_PAGE(active_process -> heap_brk)); userTablePTE < (UP_TO_PAGE(addr)); userTablePTE += PAGESIZE)
@@ -359,7 +322,7 @@ extern int KernelBrk(void *addr)
 			TracePrintf(250, "Allocate physical pages for user process: PID(%d), VPN(%d), PFN(%d).\n", active_process -> PID, i, UserPageTable[i].pfn);
 		}
 	}
-	else if (gap<0)
+	else if ( gap < 0 )
 	{
 		TracePrintf(250, "Moving user brk down to address: %d (%d)\n", addr, (long)addr >> PAGESHIFT);
 		for ( userTablePTE = (UP_TO_PAGE(addr)); userTablePTE < (UP_TO_PAGE(active_process -> heap_brk)); userTablePTE += PAGESIZE)
@@ -416,26 +379,26 @@ extern int KernelTtyRead(int tty_id, void *buf, int len)
 extern int KernelTtyWrite(int tty_id, void *buf, int len)
 {
 	TracePrintf(256, "TtyWrite: tty_id(%d), buf(%s), len(%d)\n", tty_id, buf, len);
-//	struct TTYQueue *newQueueNode = malloc(sizeof(struct TTYQueue));
-//	newQueueNode -> proc = active_process;
-//	newQueueNode -> next = NULL;
-//	newQueueNode -> length = len;
-//	newQueueNode -> buffer = buf;//not sure about the copy here
-//
-//	if (isTerminalBusy[tty_id] == 0)
-//	{
-//		TracePrintf(200, "[KernelTtyWrite] Terminal %d is not busy, prepare to write to termianl.\n", tty_id);
-//		isTerminalBusy[tty_id] = 1;
-//		TTYWriteQueueHead = newQueueNode;
-//		TTYWriteQueueTail = newQueueNode;
-//		TtyTransmit(tty_id, TTYWriteQueueHead -> buffer, len);
-//	}
-//	else
-//	{
-//		TracePrintf(200, "[KernelTtyWrite] Terminal %d is busy, put into the blocking queue.\n", tty_id);
-//		//Save the buffer and length in kernel
-//		addToTTYQEnd(newQueueNode, TTYWriteQueueTail);
-//	}
-//	return 0;
+	//	struct TTYQueue *newQueueNode = malloc(sizeof(struct TTYQueue));
+	//	newQueueNode -> proc = active_process;
+	//	newQueueNode -> next = NULL;
+	//	newQueueNode -> length = len;
+	//	newQueueNode -> buffer = buf;//not sure about the copy here
+	//
+	//	if (isTerminalBusy[tty_id] == 0)
+	//	{
+	//		TracePrintf(200, "[KernelTtyWrite] Terminal %d is not busy, prepare to write to termianl.\n", tty_id);
+	//		isTerminalBusy[tty_id] = 1;
+	//		TTYWriteQueueHead = newQueueNode;
+	//		TTYWriteQueueTail = newQueueNode;
+	//		TtyTransmit(tty_id, TTYWriteQueueHead -> buffer, len);
+	//	}
+	//	else
+	//	{
+	//		TracePrintf(200, "[KernelTtyWrite] Terminal %d is busy, put into the blocking queue.\n", tty_id);
+	//		//Save the buffer and length in kernel
+	//		addToTTYQEnd(newQueueNode, TTYWriteQueueTail);
+	//	}
+	//	return 0;
 }
 

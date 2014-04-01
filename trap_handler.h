@@ -13,5 +13,4 @@ extern void trapTTYReceive(ExceptionStackFrame *frame);
 extern void trapTTYTransmit(ExceptionStackFrame *frame);
 extern void trapMemory(ExceptionStackFrame *frame);
 
-
 #endif /* end _trap_handler_h */
