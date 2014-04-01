@@ -97,13 +97,17 @@ extern int KernelExec(char *filename, char **argvec, ExceptionStackFrame *frame)
 
 	int status = LoadProgram(filename, argvec, frame);
 
-	if (status !=0)
+	if (status ==-1)
 	{
 		//KernelExit here
 		return ERROR;
 	}
-	else
+	else if (status == -2){
+	  KernelExit(ERROR);
+	}
+	else{
 		return 0;
+	}
 }
 
 extern int KernelExit(int status)
