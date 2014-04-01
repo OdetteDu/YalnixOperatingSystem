@@ -70,6 +70,7 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 	{
 		struct PCBNode *currentPCB = current -> proc;
 		(currentPCB -> numTicksRemainForDelay) --;
+		TracePrintf(80, "[Trap Clock Delay]: PID(%d), numTicksRemainForDelay(%d)\n", currentPCB -> PID, currentPCB -> numTicksRemainForDelay);
 		if(currentPCB -> numTicksRemainForDelay == 0)
 		{
 			currentPCB->status = READY;
