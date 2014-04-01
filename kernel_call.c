@@ -21,6 +21,12 @@ extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
 /* Local Var */
 static int current_pfn;
 int cur_index;
+int vpnGenerator = 511;
+ 
+int next_vpn()
+{
+	return vpnGenerator--;
+}
 
 extern int KernelFork(void)
 {
@@ -38,7 +44,7 @@ extern int KernelFork(void)
 	}
 
 	TracePrintf(100, "[Kernel Fork]: Try to allocate a new page table\n");
-	int vpn = 511;
+	int vpn = next_vpn();
 	struct pte *kernelPTE = &KernelPageTable[vpn];
 	kernelPTE -> valid = 1;
 	kernelPTE -> uprot = PROT_NONE;
@@ -47,7 +53,7 @@ extern int KernelFork(void)
 	printKernelPageTable(100);
 
 	struct pte *newUserPageTable;
-	long newPageTableAddr = 1023 << PAGESHIFT;
+	long newPageTableAddr = (vpn + 512) << PAGESHIFT;
 	newUserPageTable = newPageTableAddr;
 	TracePrintf(100, "[Kernel Fork]: New Page Table: %d %d\n", newPageTableAddr, newUserPageTable); 
 	memcpy(newUserPageTable, active_process -> pageTable, sizeof(struct pte) * PAGE_TABLE_LEN);
