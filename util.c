@@ -21,10 +21,10 @@ extern void addToQEnd(struct queue* topush, struct queue* qTail)
 
 extern struct PCBNode* popQHead(struct queue* qHead)
 {
-	printf("POPING QHEAD:  %d\n", qHead);
+	//printf("POPING QHEAD:  %d\n", qHead);
 	struct PCBNode* temp = qHead->proc;
 	qHead = qHead->next;
-	printf("POPING QHEAD: temp %d\n", temp->PID);
+	//printf("POPING QHEAD: temp %d\n", temp->PID);
 	return temp;
 }
 

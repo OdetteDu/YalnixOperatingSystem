@@ -6,7 +6,7 @@
 #include "trap_handler.h"
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <stdint.h>
 unsigned int clockTick;
 extern struct PCBNode* init;
 extern struct PCBNode* idle;
@@ -23,7 +23,7 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 			exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 			exceptionStackFrame->regs);
 
-	int temp = 0;
+	//	int temp = 0;
 	switch(exceptionStackFrame->code)
 	{
 	case YALNIX_FORK:
@@ -42,7 +42,7 @@ extern void trapKernel(ExceptionStackFrame *exceptionStackFrame)
 		exceptionStackFrame -> regs[0] = KernelGetPid();
 		break;
 	case YALNIX_BRK:
-		exceptionStackFrame -> regs[0] = KernelBrk(exceptionStackFrame -> regs[1]);
+	  exceptionStackFrame -> regs[0] = KernelBrk((void*)exceptionStackFrame -> regs[1]);
 		break;;
 	case YALNIX_DELAY:
 		exceptionStackFrame->regs[0] = KernelDelay((int)exceptionStackFrame->regs[1]);
@@ -124,16 +124,16 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 
 		if(readyQHead != NULL)
 		{
-			printf("We are poping ready Q head right now!\n");
+		  //	printf("We are poping ready Q head right now!\n");
 			struct queue* head = readyQHead;
 			struct PCBNode* p2 = head->proc;
 			readyQHead = head->next;
 			free(head);
 
-			printf("We poped out PID %d\n", p2->PID);
+			//	printf("We poped out PID %d\n", p2->PID);
 			if(readyQHead == NULL) readyQTail = NULL;
 			ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, p2);
-			printf("Now the ready queue head is%d\n", (readyQHead->proc)->PID);
+			//	printf("Now the ready queue head is%d\n", (readyQHead->proc)->PID);
 			clockTick = 0;
 			TracePrintf(256, "Trap_clock: switch from pid1: %d to pid2: %d\n", active_process->PID, p2->PID);
 		}
@@ -141,7 +141,7 @@ extern void trapClock(ExceptionStackFrame *exceptionStackFrame)
 		{
 			if(active_process!= idle)
 			{
-				printf("We are just switching to idle!\n");
+			  //	printf("We are just switching to idle!\n");
 				ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, idle);
 				clockTick = 0;
 				TracePrintf(256, "Trap_clock: switch from pid1: %d to pid2: %d\n", active_process->PID, idle->PID);
@@ -196,13 +196,13 @@ extern void trapMemory(ExceptionStackFrame *exceptionStackFrame)
 			exceptionStackFrame->psr, exceptionStackFrame->pc, exceptionStackFrame->sp,
 			exceptionStackFrame->regs);
 
-	if( exceptionStackFrame -> addr > active_process -> stack_brk )
+	if( (uint64_t)(exceptionStackFrame -> addr) > (active_process -> stack_brk) )
 	{
 		TracePrintf(0, "Trap Memory Error: PID: %d, addr: %d is large than stack_brk: %d\n", active_process -> PID, exceptionStackFrame -> addr, active_process -> stack_brk);
 		KernelExit(ERROR);
 	}
 
-	if( exceptionStackFrame -> addr < UP_TO_PAGE( active_process -> heap_brk) + PAGESIZE )
+	if( (uint64_t)(exceptionStackFrame -> addr) < (UP_TO_PAGE( active_process -> heap_brk) + PAGESIZE) )
 	{
 		TracePrintf(0, "Trap Memory Error: PID: %d, addr: %d is smaller than heap_brk: %d\n", active_process -> PID, exceptionStackFrame -> addr, active_process -> heap_brk);;
 		KernelExit(ERROR);

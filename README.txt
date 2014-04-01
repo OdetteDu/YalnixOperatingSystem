@@ -11,7 +11,7 @@ After Context Switch
 1. GetPid is working
 2. Delay is working
 3. Exec is working
-4. Fork is working except the parent doesn't return properly
+4. Fork works except but the due to problems in exit parent doesn't return properly
 5. Wait and Exit is working except the previous bug
 
 In addition, we successfull use the top virtual pages in region 1 to create

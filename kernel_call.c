@@ -1,12 +1,14 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <comp421/loadinfo.h>
 #include <comp421/yalnix.h>
 #include <comp421/hardware.h>
 #include "trap_handler.h"
 #include "global.h"
+#include "util.h"
 #include <stdio.h>
 
 /* Var */
@@ -19,7 +21,7 @@ extern struct pte *UserPageTable, *KernelPageTable;
 extern int LoadProgram(char *name, char **args, ExceptionStackFrame *frame);
 
 /* Local Var */
-static int current_pfn;
+//static int current_pfn;
 int cur_index;
 int vpnGenerator = 511;
  
@@ -31,12 +33,12 @@ int next_vpn()
 extern int KernelFork(void)
 {
 	TracePrintf(256, "Fork\n");
-	printf("[KernelFork] entrance\n");
+	//printf("[KernelFork] entrance\n");
 	struct PCBNode cur_active;
 	memcpy(&cur_active, active_process, sizeof(struct PCBNode));
 	struct PCBNode* newproc;
 
-	int offset = 0;
+	//int offset = 0;
 	newproc = (struct PCBNode *)malloc(sizeof(struct PCBNode));
 	if(newproc == NULL)
 	{
@@ -54,7 +56,7 @@ extern int KernelFork(void)
 
 	struct pte *newUserPageTable;
 	long newPageTableAddr = (vpn + 512) << PAGESHIFT;
-	newUserPageTable = newPageTableAddr;
+	newUserPageTable =(struct pte*) newPageTableAddr;
 	TracePrintf(100, "[Kernel Fork]: New Page Table: %d %d\n", newPageTableAddr, newUserPageTable); 
 	memcpy(newUserPageTable, active_process -> pageTable, sizeof(struct pte) * PAGE_TABLE_LEN);
 
@@ -73,16 +75,16 @@ extern int KernelFork(void)
 	ContextSwitch(forkSwitchFunc, &(cur_active.ctxp), &cur_active, newproc);
 	TracePrintf(100, "Fork left context switch\n");
 
-	printf("[KernelFork] context switched\n");
+	//printf("[KernelFork] context switched\n");
 	if(cur_active.PID == active_process->PID)
 	{
-		printf("[KernelFork] parent return\n");
+	//	printf("[KernelFork] parent return\n");
 		//return from parent
 		return newproc->PID;
 	}
 	else
 	{
-		printf("[KernelFork] child return \n");
+		//printf("[KernelFork] child return \n");
 		//this is returning from child, which means we should maintain the child queue
 		return 0;
 	}
@@ -212,7 +214,7 @@ extern int KernelExit(int status)
 		TracePrintf(99, "[Kernel Exit] Now we finished recording child status we could free it.\n");
 		//struct PCBNode*
 		//check the waiting queue to find parent
-		struct queue* newWaitQ;
+		struct queue* newWaitQ=0;
 		struct queue* waitingQ = waitingQHead;
 		while(waitingQ!=0){//go through waiting q to resume parent
 			struct PCBNode* item = waitingQ->proc;
@@ -224,19 +226,23 @@ extern int KernelExit(int status)
 				if(newWaitQ==0)
 				{
 					waitingQHead = waitingQ->next;
+					waitingQ = waitingQHead;
 				}
 				else
-				{
-					newWaitQ->next = waitingQ->next;
+				  {
+				    newWaitQ = waitingQ;
+				    newWaitQ->next = waitingQ->next;
+				    waitingQ = newWaitQ->next;
 				}
 				ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, item);
+				break;
 			}
 		}
 
-		/* struct PCBNode* nextReady;
+       struct PCBNode* nextReady;
        if(readyQHead==0){ nextReady = idle;}
        else{ nextReady = popQHead(readyQHead);}
-       ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, nextReady);*/
+       ContextSwitch(generalSwitchFunc, &(active_process->ctxp), active_process, nextReady);
 	}
 
 	return 0;
@@ -300,13 +306,13 @@ extern int KernelBrk(void *addr)
 	TracePrintf(256, "Brk: addr(%d)\n", addr);
 
 	//check if the addr is illegal
-	if(addr < MEM_INVALID_SIZE)
+	if((long int)addr < MEM_INVALID_SIZE)
 	{
 		TracePrintf(0, "Error in KernelBrk: Trying to set the brk below MEM_INVALID_SIZE.\n");
 		return ERROR;
 	}
 
-	if(addr > DOWN_TO_PAGE(active_process -> stack_brk) - PAGESIZE)
+	if((long int)addr > (DOWN_TO_PAGE(active_process -> stack_brk) - PAGESIZE))
 	{
 		TracePrintf(0, "Error in KernelBrk: Trying to set the brk inside or above the red zone.\n");
 		return ERROR;
@@ -340,7 +346,7 @@ extern int KernelBrk(void *addr)
 		WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_1);
 	}
 
-	active_process -> heap_brk = addr;
+	active_process -> heap_brk = (uint64_t)addr;
 	return 0;
 }
 
@@ -405,6 +411,6 @@ extern int KernelTtyWrite(int tty_id, void *buf, int len)
 	//		//Save the buffer and length in kernel
 	//		addToTTYQEnd(newQueueNode, TTYWriteQueueTail);
 	//	}
-	//	return 0;
+		return 0;
 }
 

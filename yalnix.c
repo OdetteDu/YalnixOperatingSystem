@@ -69,9 +69,19 @@ extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void* p1, void* p2)
 	TracePrintf(0, "[Exit Switch] Entrance \n");
 	struct pte* table2 = ((struct PCBNode*)p2)->pageTable;
 	if(p2==0){p2 = idle;}
-	memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
-	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
-	freePhysicalPage(((struct PCBNode*)p1)->pageTable);
+	UserPageTable = table2;
+	printUserPageTable(100);
+	long vpn = ((long)table2 & PAGEMASK) >> PAGESHIFT; 
+	int pfn = KernelPageTable[vpn-512].pfn;
+	long offset = (long)table2 & PAGEOFFSET;
+	long addrUP = pfn << PAGESHIFT;
+	long addr = addrUP + offset;
+	TracePrintf(100, "table2: %d, vpn: %d, pfn: %d, offset: %d, addrUP: %d, addr: %d\n", table2, vpn, pfn, offset, addrUP, addr);
+	WriteRegister(REG_PTR0, (RCS421RegVal)addr);
+	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
+	//	memcpy(UserPageTable, table2, PAGE_TABLE_LEN);
+	///	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+	freePhysicalPage((uint64_t)((struct PCBNode*)p1)->pageTable);
 	free(((struct PCBNode*)p1));
 	((struct PCBNode*)p2)->status = ACTIVE;
 	active_process = ((struct PCBNode*)p2);
@@ -81,7 +91,7 @@ extern SavedContext *exitSwitchFunc(SavedContext *ctxp, void* p1, void* p2)
 /* Only Difference with generalSwitch is we push delay queue*/
 extern SavedContext *delaySwitchFunc(SavedContext *ctxp, void* p1, void* p2)
 {
-	struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
+  //struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
 	struct pte *table2 = ((struct PCBNode*)p2)->pageTable;
 	TracePrintf(256, "[Delay Switch] Entrance\n");
 
@@ -100,7 +110,7 @@ extern SavedContext *delaySwitchFunc(SavedContext *ctxp, void* p1, void* p2)
 	long addr = addrUP + offset;
 	TracePrintf(100, "table2: %d, vpn: %d, pfn: %d, offset: %d, addrUP: %d, addr: %d\n", table2, vpn, pfn, offset, addrUP, addr);
 	WriteRegister(REG_PTR0, (RCS421RegVal)addr);
-	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_ALL);
+	WriteRegister(REG_TLB_FLUSH, TLB_FLUSH_0);
 	((struct PCBNode*)p2)->status = ACTIVE;
 	((struct PCBNode*)p1)->status = READY;
 	active_process = p2;
@@ -122,13 +132,13 @@ extern SavedContext *delaySwitchFunc(SavedContext *ctxp, void* p1, void* p2)
 		delayQueueTail = pcb1;
 	}
 
-	printf("[DelaySwitched] from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
+	//	printf("[DelaySwitched] from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
 	return &(((struct PCBNode*)p2)->ctxp);
 }
 
 extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2)
 {
-	struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
+  //struct pte *table1 = ((struct PCBNode*)p1)->pageTable;
 	struct pte *table2 = ((struct PCBNode*)p2)->pageTable;
 	TracePrintf(256, "[General Switch] Entrance\n");
 
@@ -167,7 +177,7 @@ extern SavedContext *generalSwitchFunc(SavedContext *ctxp, void* p1, void* p2)
 		readyQTail->next = pcb1;
 		readyQTail = pcb1;
 	}
-	printf("[General Switched] from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
+	//printf("[General Switched] from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
 	return &(((struct PCBNode*)p2)->ctxp);
 }
 /**
@@ -186,7 +196,7 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 	 *  We must call fork from the active process.
 	 **/
 
-	printf("check if table2 is allocated table2[0] = %d\n", table2[0]);
+	//	printf("check if table2 is allocated table2[0] = %d\n", table2[0]);
 	for(i=0; i<PAGE_TABLE_LEN;i++)
 	{
 		table2[i].valid = table1[i].valid;
@@ -196,7 +206,7 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 			table2[i].uprot = PROT_NONE;
 			buffer[i] = malloc(PAGESIZE);
 			TracePrintf(256, "[Fork Switch Copy]: allocated memory for the %d page %p\n", i, buffer[i]);
-			memcpy(buffer[i], (uint64_t *)(i<<PAGESHIFT), PAGESIZE);
+			memcpy(buffer[i], (void *)((uint64_t)i<<PAGESHIFT), PAGESIZE);
 		}
 	}
 	printUserPageTable(1024);
@@ -224,7 +234,7 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 			//allocate a new page for this pte
 			int newpfn = allocatePhysicalPage();
 			UserPageTable[i].pfn = newpfn;
-			memcpy((uint64_t *)(i<<PAGESHIFT), buffer[i], PAGESIZE);
+			memcpy((void*)((uint64_t)i<<PAGESHIFT), buffer[i], PAGESIZE);
 			free(buffer[i]);//free is internal to malloc?? does not call setkernelpagebrk;
 			//leave it as it is
 			TracePrintf(256, "[Fork Swtich Copy]: freed memory for the %d page \n", i);
@@ -268,7 +278,7 @@ extern SavedContext *forkSwitchFunc(SavedContext *ctxp, void *p1, void *p2)
 		readyQTail = pcb1;
 	}
 
-	printf("ForkSwitched from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
+	//printf("ForkSwitched from pid: %d to pid: %d\n", ((struct PCBNode*)p1)->PID, ((struct PCBNode*)p2)->PID);
 	return &(((struct PCBNode*)p2)->ctxp);
 }
 
